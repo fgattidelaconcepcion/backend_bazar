@@ -28,13 +28,11 @@ app.use((req, _res, next) => {
 
 // Servir uploads locales (solo cuando el adapter es local)
 if (storage.kind === 'local') {
-  app.use('/uploads', express.static(storage.getUploadsDir(), {
-    maxAge: '30d',
-    immutable: true,
-    fallthrough: false
-  }));
-}
-
+app.use('/uploads', express.static('/tmp/uploads', {
+  maxAge: '30d',
+  immutable: true,
+  fallthrough: false
+}));
 // Servir el panel admin desde /admin (si existe la carpeta admin/)
 const fs = require('fs');
 const ADMIN_DIR = path.resolve(__dirname, '..', 'admin');
