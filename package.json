@@ -4,7 +4,7 @@
   "description": "API REST para Bazar Moderno - e-commerce de artículos para el hogar",
   "main": "src/server.js",
   "scripts": {
-    "start": "node --no-warnings --experimental-sqlite src/server.js",
+    "start": "node src/server.js",
     "dev": "node --no-warnings --experimental-sqlite --watch src/server.js",
     "seed": "node --no-warnings --experimental-sqlite src/db/seed.js",
     "init-db": "node --no-warnings --experimental-sqlite src/db/init.js"
