@@ -15,12 +15,15 @@
   body { font-family: 'Plus Jakarta Sans', sans-serif; }
   .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400; }
   .tab-active { border-color: #f46325; color: #f46325; }
+  /* Scrollbar oculto en la barra de tabs */
+  .tabs-scroll::-webkit-scrollbar { display: none; }
+  .tabs-scroll { scrollbar-width: none; -ms-overflow-style: none; }
 </style>
 </head>
 <body class="bg-background-light text-[#181311] min-h-screen">
 
 <section id="login-section" class="hidden min-h-screen flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-8">
+  <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 sm:p-8">
     <div class="text-center mb-6">
       <div class="inline-flex items-center gap-2 mb-2">
         <svg class="size-7 text-primary" fill="none" viewBox="0 0 48 48"><path clip-rule="evenodd" d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z" fill="currentColor" fill-rule="evenodd"></path></svg>
@@ -39,56 +42,72 @@
 
 <section id="app-section" class="hidden">
   <header class="bg-white border-b border-gray-200 sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
-      <div class="flex items-center gap-3">
-        <svg class="size-6 text-primary" fill="none" viewBox="0 0 48 48"><path clip-rule="evenodd" d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z" fill="currentColor" fill-rule="evenodd"></path></svg>
-        <h1 class="text-base font-bold">Bazar Moderno · <span class="text-primary">Admin</span></h1>
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex items-center justify-between h-14 sm:h-16 gap-2">
+      <div class="flex items-center gap-2 min-w-0">
+        <svg class="size-5 sm:size-6 text-primary shrink-0" fill="none" viewBox="0 0 48 48"><path clip-rule="evenodd" d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z" fill="currentColor" fill-rule="evenodd"></path></svg>
+        <h1 class="text-sm sm:text-base font-bold truncate">Bazar Moderno · <span class="text-primary">Admin</span></h1>
       </div>
-      <div class="flex items-center gap-3">
-        <span id="user-label" class="text-sm text-gray-600 hidden sm:inline"></span>
-        <span id="storage-badge" class="hidden sm:inline text-[11px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium"></span>
-        <button id="btn-logout" class="text-sm text-gray-500 hover:text-red-600 flex items-center gap-1">
+      <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+        <span id="user-label" class="text-sm text-gray-600 hidden md:inline truncate max-w-[150px]"></span>
+        <span id="storage-badge" class="hidden md:inline text-[11px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium"></span>
+        <button id="btn-logout" class="text-sm text-gray-500 hover:text-red-600 flex items-center gap-1" aria-label="Salir">
           <span class="material-symbols-outlined text-xl">logout</span>
           <span class="hidden sm:inline">Salir</span>
         </button>
       </div>
     </div>
-    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-6">
-      <button data-tab="products" class="tab-btn h-11 border-b-2 border-transparent text-gray-500 font-medium px-1">Productos</button>
-      <button data-tab="categories" class="tab-btn h-11 border-b-2 border-transparent text-gray-500 font-medium px-1">Categorías</button>
-      <button data-tab="uploads" class="tab-btn h-11 border-b-2 border-transparent text-gray-500 font-medium px-1">Archivos</button>
-      <button data-tab="settings" class="tab-btn h-11 border-b-2 border-transparent text-gray-500 font-medium px-1">Ajustes</button>
+    <nav class="tabs-scroll max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex gap-4 sm:gap-6 overflow-x-auto whitespace-nowrap">
+      <button data-tab="products" class="tab-btn h-11 border-b-2 border-transparent text-gray-500 font-medium px-1 text-sm sm:text-base shrink-0">Productos</button>
+      <button data-tab="categories" class="tab-btn h-11 border-b-2 border-transparent text-gray-500 font-medium px-1 text-sm sm:text-base shrink-0">Categorías</button>
+      <button data-tab="uploads" class="tab-btn h-11 border-b-2 border-transparent text-gray-500 font-medium px-1 text-sm sm:text-base shrink-0">Archivos</button>
+      <button data-tab="settings" class="tab-btn h-11 border-b-2 border-transparent text-gray-500 font-medium px-1 text-sm sm:text-base shrink-0">Ajustes</button>
     </nav>
   </header>
 
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+
+    <!-- ====== TAB PRODUCTOS ====== -->
     <div id="tab-products" class="tab-pane">
-      <div class="flex items-center justify-between mb-4">
-        <div><h2 class="text-2xl font-bold">Productos</h2><p class="text-sm text-gray-500">Gestioná el catálogo del bazar.</p></div>
-        <button id="btn-new-product" class="bg-primary text-white rounded-lg h-10 px-4 font-bold hover:bg-opacity-90 flex items-center gap-1"><span class="material-symbols-outlined text-xl">add</span>Nuevo producto</button>
+      <div class="flex items-center justify-between mb-4 gap-3">
+        <div class="min-w-0">
+          <h2 class="text-xl sm:text-2xl font-bold">Productos</h2>
+          <p class="text-xs sm:text-sm text-gray-500">Gestioná el catálogo del bazar.</p>
+        </div>
+        <button id="btn-new-product" class="bg-primary text-white rounded-lg h-10 px-3 sm:px-4 font-bold hover:bg-opacity-90 flex items-center gap-1 shrink-0" aria-label="Nuevo producto">
+          <span class="material-symbols-outlined text-xl">add</span>
+          <span class="hidden sm:inline">Nuevo producto</span>
+        </button>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div id="products-list" class="divide-y divide-gray-100"><p class="text-center text-gray-500 py-12">Cargando…</p></div>
       </div>
     </div>
 
+    <!-- ====== TAB CATEGORÍAS ====== -->
     <div id="tab-categories" class="tab-pane hidden">
-      <div class="flex items-center justify-between mb-4">
-        <div><h2 class="text-2xl font-bold">Categorías</h2><p class="text-sm text-gray-500">Cada producto puede pertenecer a una categoría.</p></div>
-        <button id="btn-new-category" class="bg-primary text-white rounded-lg h-10 px-4 font-bold hover:bg-opacity-90 flex items-center gap-1"><span class="material-symbols-outlined text-xl">add</span>Nueva categoría</button>
+      <div class="flex items-center justify-between mb-4 gap-3">
+        <div class="min-w-0">
+          <h2 class="text-xl sm:text-2xl font-bold">Categorías</h2>
+          <p class="text-xs sm:text-sm text-gray-500">Cada producto puede pertenecer a una categoría.</p>
+        </div>
+        <button id="btn-new-category" class="bg-primary text-white rounded-lg h-10 px-3 sm:px-4 font-bold hover:bg-opacity-90 flex items-center gap-1 shrink-0" aria-label="Nueva categoría">
+          <span class="material-symbols-outlined text-xl">add</span>
+          <span class="hidden sm:inline">Nueva categoría</span>
+        </button>
       </div>
-      <div id="categories-list" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"><p class="text-center text-gray-500 py-12 col-span-full">Cargando…</p></div>
+      <div id="categories-list" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"><p class="text-center text-gray-500 py-12 col-span-full">Cargando…</p></div>
     </div>
 
+    <!-- ====== TAB ARCHIVOS ====== -->
     <div id="tab-uploads" class="tab-pane hidden">
-      <div class="grid lg:grid-cols-3 gap-6">
-        <div class="lg:col-span-1 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div class="grid lg:grid-cols-3 gap-4 sm:gap-6">
+        <div class="lg:col-span-1 bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
           <h2 class="font-bold mb-1">Subir archivo</h2>
           <p class="text-sm text-gray-500 mb-4">Imágenes (se optimizan a WebP) o videos.</p>
           <label class="block"><span class="text-xs font-medium">Tipo</span><select id="upload-kind" class="form-select w-full rounded-lg border-gray-200 mt-1"><option value="image">Imagen</option><option value="video">Video</option></select></label>
-          <label class="block mt-3"><span class="text-xs font-medium">Archivo</span><input id="upload-file" type="file" class="block w-full mt-1 text-sm file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"/></label>
+          <label class="block mt-3"><span class="text-xs font-medium">Archivo</span><input id="upload-file" type="file" class="block w-full mt-1 text-sm file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"/></label>
           <button id="upload-submit" class="mt-4 w-full bg-primary text-white font-bold rounded-lg h-10 hover:bg-opacity-90 disabled:opacity-50">Subir</button>
-          <div id="upload-result" class="mt-4 hidden p-3 bg-green-50 border border-green-200 rounded-lg text-sm"></div>
+          <div id="upload-result" class="mt-4 hidden p-3 bg-green-50 border border-green-200 rounded-lg text-sm break-words"></div>
         </div>
         <div class="lg:col-span-2">
           <h2 class="font-bold mb-3">Historial</h2>
@@ -97,17 +116,14 @@
       </div>
     </div>
 
-    <!-- ====== TAB: AJUSTES ====== -->
+    <!-- ====== TAB AJUSTES ====== -->
     <div id="tab-settings" class="tab-pane hidden">
-      <div class="flex items-center justify-between mb-4">
-        <div>
-          <h2 class="text-2xl font-bold">Ajustes del sitio</h2>
-          <p class="text-sm text-gray-500">Información que aparece en el footer del sitio público.</p>
-        </div>
+      <div class="mb-4">
+        <h2 class="text-xl sm:text-2xl font-bold">Ajustes del sitio</h2>
+        <p class="text-xs sm:text-sm text-gray-500">Información que aparece en el footer del sitio público.</p>
       </div>
-      <form id="settings-form" class="space-y-6">
-        <!-- Marca -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <form id="settings-form" class="space-y-4 sm:space-y-6 pb-24 sm:pb-32">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
           <h3 class="font-bold mb-1">Marca</h3>
           <p class="text-xs text-gray-500 mb-4">Texto descriptivo y línea de copyright del footer.</p>
           <div class="grid gap-3">
@@ -120,8 +136,7 @@
           </div>
         </div>
 
-        <!-- Contacto -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
           <h3 class="font-bold mb-1">Información de contacto</h3>
           <p class="text-xs text-gray-500 mb-4">Aparece en la columna "Contacto" del footer. Vacío = no se muestra.</p>
           <div class="grid sm:grid-cols-2 gap-3">
@@ -137,8 +152,7 @@
           </div>
         </div>
 
-        <!-- Redes sociales -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
           <h3 class="font-bold mb-1">Redes sociales</h3>
           <p class="text-xs text-gray-500 mb-4">Pegá la URL completa. Solo se muestran las que tengan valor.</p>
           <div class="grid gap-3">
@@ -155,36 +169,25 @@
           </div>
         </div>
 
-        <!-- Páginas del footer -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
           <h3 class="font-bold mb-1">Páginas del footer</h3>
           <p class="text-xs text-gray-500 mb-4">El contenido se muestra en un modal cuando el cliente clickea cada link.</p>
           <div class="grid gap-3">
-            <label class="block"><span class="text-sm font-medium">Sobre nosotros</span>
-              <textarea name="page_about" rows="3" class="form-textarea w-full rounded-lg border-gray-200 mt-1"></textarea>
-            </label>
-            <label class="block"><span class="text-sm font-medium">Contacto</span>
-              <textarea name="page_contact" rows="3" class="form-textarea w-full rounded-lg border-gray-200 mt-1"></textarea>
-            </label>
-            <label class="block"><span class="text-sm font-medium">Preguntas frecuentes</span>
-              <textarea name="page_faqs" rows="4" class="form-textarea w-full rounded-lg border-gray-200 mt-1"></textarea>
-            </label>
-            <label class="block"><span class="text-sm font-medium">Envíos</span>
-              <textarea name="page_shipping" rows="3" class="form-textarea w-full rounded-lg border-gray-200 mt-1"></textarea>
-            </label>
-            <label class="block"><span class="text-sm font-medium">Devoluciones</span>
-              <textarea name="page_returns" rows="3" class="form-textarea w-full rounded-lg border-gray-200 mt-1"></textarea>
-            </label>
-            <label class="block"><span class="text-sm font-medium">Política de Privacidad</span>
-              <textarea name="page_privacy" rows="3" class="form-textarea w-full rounded-lg border-gray-200 mt-1"></textarea>
-            </label>
+            <label class="block"><span class="text-sm font-medium">Sobre nosotros</span><textarea name="page_about" rows="3" class="form-textarea w-full rounded-lg border-gray-200 mt-1"></textarea></label>
+            <label class="block"><span class="text-sm font-medium">Contacto</span><textarea name="page_contact" rows="3" class="form-textarea w-full rounded-lg border-gray-200 mt-1"></textarea></label>
+            <label class="block"><span class="text-sm font-medium">Preguntas frecuentes</span><textarea name="page_faqs" rows="4" class="form-textarea w-full rounded-lg border-gray-200 mt-1"></textarea></label>
+            <label class="block"><span class="text-sm font-medium">Envíos</span><textarea name="page_shipping" rows="3" class="form-textarea w-full rounded-lg border-gray-200 mt-1"></textarea></label>
+            <label class="block"><span class="text-sm font-medium">Devoluciones</span><textarea name="page_returns" rows="3" class="form-textarea w-full rounded-lg border-gray-200 mt-1"></textarea></label>
+            <label class="block"><span class="text-sm font-medium">Política de Privacidad</span><textarea name="page_privacy" rows="3" class="form-textarea w-full rounded-lg border-gray-200 mt-1"></textarea></label>
           </div>
         </div>
 
-        <div class="flex justify-end gap-3 sticky bottom-4 bg-background-light/90 backdrop-blur p-3 rounded-lg">
-          <button type="button" id="settings-reload" class="px-4 h-10 rounded-lg text-gray-600 hover:bg-gray-100">Descartar cambios</button>
-          <button type="submit" class="bg-primary text-white font-bold rounded-lg h-10 px-6 hover:bg-opacity-90 flex items-center gap-1">
-            <span class="material-symbols-outlined text-xl">save</span>Guardar ajustes
+        <!-- Barra fija inferior con botones (mobile-friendly) -->
+        <div class="fixed bottom-0 left-0 right-0 z-30 border-t border-gray-200 bg-white/95 backdrop-blur p-3 flex justify-end gap-2">
+          <button type="button" id="settings-reload" class="px-3 sm:px-4 h-10 rounded-lg text-gray-600 hover:bg-gray-100 text-sm">Descartar</button>
+          <button type="submit" class="bg-primary text-white font-bold rounded-lg h-10 px-4 sm:px-6 hover:bg-opacity-90 flex items-center gap-1 text-sm sm:text-base">
+            <span class="material-symbols-outlined text-lg sm:text-xl">save</span>
+            <span class="hidden xs:inline sm:inline">Guardar</span>
           </button>
         </div>
       </form>
@@ -192,13 +195,14 @@
   </main>
 </section>
 
-<div id="product-modal" class="hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-    <div class="flex items-center justify-between p-4 border-b border-gray-200 sticky top-0 bg-white">
-      <h3 id="product-modal-title" class="font-bold text-lg">Nuevo producto</h3>
-      <button class="modal-close text-gray-500 hover:text-black"><span class="material-symbols-outlined">close</span></button>
+<!-- ===== MODAL PRODUCTO ===== -->
+<div id="product-modal" class="hidden fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4">
+  <div class="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full sm:max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between p-4 border-b border-gray-200 sticky top-0 bg-white z-10">
+      <h3 id="product-modal-title" class="font-bold text-base sm:text-lg">Nuevo producto</h3>
+      <button class="modal-close text-gray-500 hover:text-black p-1"><span class="material-symbols-outlined">close</span></button>
     </div>
-    <form id="product-form" class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <form id="product-form" class="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
       <input type="hidden" name="id"/>
       <label class="block sm:col-span-2"><span class="text-sm font-medium">Nombre *</span><input name="name" required class="form-input w-full rounded-lg border-gray-200 mt-1"/></label>
       <label class="block sm:col-span-2"><span class="text-sm font-medium">Descripción</span><textarea name="description" rows="3" class="form-textarea w-full rounded-lg border-gray-200 mt-1"></textarea></label>
@@ -209,17 +213,17 @@
       <div class="block sm:col-span-2">
         <span class="text-sm font-medium">Imagen del producto</span>
         <div class="mt-1 flex items-center gap-3">
-          <div id="product-image-preview" class="w-20 h-20 rounded-lg bg-gray-100 bg-center bg-cover border border-gray-200 shrink-0"></div>
-          <input type="file" id="product-image-file" accept="image/*" class="text-sm file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"/>
+          <div id="product-image-preview" class="w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-gray-100 bg-center bg-cover border border-gray-200 shrink-0"></div>
+          <input type="file" id="product-image-file" accept="image/*" class="text-sm min-w-0 flex-1 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"/>
           <input type="hidden" name="image_url"/>
           <input type="hidden" name="thumb_url"/>
         </div>
-        <p id="product-image-status" class="text-xs text-gray-500 mt-1"></p>
+        <p id="product-image-status" class="text-xs text-gray-500 mt-1 break-words"></p>
       </div>
       <div class="block sm:col-span-2">
         <span class="text-sm font-medium">Video (opcional)</span>
-        <div class="mt-1 flex items-center gap-3">
-          <input type="file" id="product-video-file" accept="video/*" class="text-sm file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"/>
+        <div class="mt-1 flex items-center gap-3 flex-wrap">
+          <input type="file" id="product-video-file" accept="video/*" class="text-sm min-w-0 flex-1 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"/>
           <input type="hidden" name="video_url"/>
           <a id="product-video-link" href="#" target="_blank" class="hidden text-xs text-primary hover:underline">Ver video</a>
         </div>
@@ -228,48 +232,49 @@
       <label class="flex items-center gap-2"><input type="checkbox" name="is_new" class="form-checkbox text-primary rounded"/><span class="text-sm">Mostrar en "Novedades"</span></label>
       <label class="flex items-center gap-2"><input type="checkbox" name="is_featured" class="form-checkbox text-primary rounded"/><span class="text-sm">Destacado</span></label>
       <label class="block sm:col-span-2"><span class="text-sm font-medium">Fin de oferta (opcional)</span><input name="sale_ends_at" type="datetime-local" class="form-input w-full rounded-lg border-gray-200 mt-1"/></label>
-      <div class="sm:col-span-2 flex justify-between items-center pt-3 border-t border-gray-200">
+      <div class="sm:col-span-2 flex flex-wrap justify-between items-center gap-2 pt-3 border-t border-gray-200">
         <button type="button" id="btn-delete-product" class="hidden text-red-600 hover:text-red-700 text-sm font-medium flex items-center gap-1"><span class="material-symbols-outlined text-base">delete</span>Eliminar</button>
         <div class="flex gap-2 ml-auto">
-          <button type="button" class="modal-close px-4 h-10 rounded-lg text-gray-600 hover:bg-gray-100">Cancelar</button>
-          <button type="submit" class="bg-primary text-white font-bold rounded-lg h-10 px-5 hover:bg-opacity-90">Guardar</button>
+          <button type="button" class="modal-close px-3 sm:px-4 h-10 rounded-lg text-gray-600 hover:bg-gray-100 text-sm">Cancelar</button>
+          <button type="submit" class="bg-primary text-white font-bold rounded-lg h-10 px-4 sm:px-5 hover:bg-opacity-90 text-sm sm:text-base">Guardar</button>
         </div>
       </div>
     </form>
   </div>
 </div>
 
-<div id="category-modal" class="hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl shadow-2xl w-full max-w-md">
-    <div class="flex items-center justify-between p-4 border-b border-gray-200">
-      <h3 id="category-modal-title" class="font-bold text-lg">Nueva categoría</h3>
-      <button class="modal-close text-gray-500 hover:text-black"><span class="material-symbols-outlined">close</span></button>
+<!-- ===== MODAL CATEGORÍA ===== -->
+<div id="category-modal" class="hidden fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4">
+  <div class="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full sm:max-w-md max-h-[95vh] overflow-y-auto">
+    <div class="flex items-center justify-between p-4 border-b border-gray-200 sticky top-0 bg-white z-10">
+      <h3 id="category-modal-title" class="font-bold text-base sm:text-lg">Nueva categoría</h3>
+      <button class="modal-close text-gray-500 hover:text-black p-1"><span class="material-symbols-outlined">close</span></button>
     </div>
-    <form id="category-form" class="p-6 flex flex-col gap-3">
+    <form id="category-form" class="p-4 sm:p-6 flex flex-col gap-3">
       <input type="hidden" name="id"/>
       <label class="block"><span class="text-sm font-medium">Nombre *</span><input name="name" required class="form-input w-full rounded-lg border-gray-200 mt-1"/></label>
       <label class="block"><span class="text-sm font-medium">Slug *</span><input name="slug" required pattern="[a-z0-9-]+" class="form-input w-full rounded-lg border-gray-200 mt-1"/><span class="text-xs text-gray-500">Solo minúsculas, números y guiones.</span></label>
       <div class="block">
         <span class="text-sm font-medium">Imagen</span>
         <div class="mt-1 flex items-center gap-3">
-          <div id="category-image-preview" class="w-20 h-20 rounded-lg bg-gray-100 bg-center bg-cover border border-gray-200 shrink-0"></div>
-          <input type="file" id="category-image-file" accept="image/*" class="text-sm"/>
+          <div id="category-image-preview" class="w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-gray-100 bg-center bg-cover border border-gray-200 shrink-0"></div>
+          <input type="file" id="category-image-file" accept="image/*" class="text-sm min-w-0 flex-1 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"/>
           <input type="hidden" name="image_url"/>
         </div>
-        <p id="category-image-status" class="text-xs text-gray-500 mt-1"></p>
+        <p id="category-image-status" class="text-xs text-gray-500 mt-1 break-words"></p>
       </div>
-      <div class="flex justify-between items-center pt-3 border-t border-gray-200 mt-3">
+      <div class="flex flex-wrap justify-between items-center gap-2 pt-3 border-t border-gray-200 mt-3">
         <button type="button" id="btn-delete-category" class="hidden text-red-600 hover:text-red-700 text-sm font-medium flex items-center gap-1"><span class="material-symbols-outlined text-base">delete</span>Eliminar</button>
         <div class="flex gap-2 ml-auto">
-          <button type="button" class="modal-close px-4 h-10 rounded-lg text-gray-600 hover:bg-gray-100">Cancelar</button>
-          <button type="submit" class="bg-primary text-white font-bold rounded-lg h-10 px-5 hover:bg-opacity-90">Guardar</button>
+          <button type="button" class="modal-close px-3 sm:px-4 h-10 rounded-lg text-gray-600 hover:bg-gray-100 text-sm">Cancelar</button>
+          <button type="submit" class="bg-primary text-white font-bold rounded-lg h-10 px-4 sm:px-5 hover:bg-opacity-90 text-sm sm:text-base">Guardar</button>
         </div>
       </div>
     </form>
   </div>
 </div>
 
-<div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] bg-[#181311] text-white px-4 py-3 rounded-lg shadow-xl text-sm"></div>
+<div id="toast" class="hidden fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-[200] bg-[#181311] text-white px-4 py-3 rounded-lg shadow-xl text-sm max-w-[90vw] text-center"></div>
 
 <script>
 (() => {
@@ -347,7 +352,7 @@
     list.innerHTML = state.categories.map(c => `
       <button data-edit-cat="${c.id}" class="bg-white rounded-xl border border-gray-200 hover:border-primary text-left overflow-hidden">
         <div class="aspect-[3/2] bg-gray-100 bg-center bg-cover" style='background-image: url("${escapeHTML(c.image_url || '')}");'></div>
-        <div class="p-4"><p class="font-bold">${escapeHTML(c.name)}</p><p class="text-xs text-gray-500 mt-1">/${escapeHTML(c.slug)}</p></div>
+        <div class="p-3 sm:p-4"><p class="font-bold text-sm sm:text-base truncate">${escapeHTML(c.name)}</p><p class="text-xs text-gray-500 mt-1 truncate">/${escapeHTML(c.slug)}</p></div>
       </button>`).join('');
   }
   $('#categories-list').addEventListener('click', (e) => {
@@ -402,20 +407,24 @@
     const list = $('#products-list');
     if (!state.products.length) { list.innerHTML = '<p class="text-center text-gray-500 py-12">Sin productos.</p>'; return; }
     list.innerHTML = state.products.map(p => `
-      <div data-edit-prod="${p.id}" class="flex items-center gap-4 p-4 hover:bg-gray-50 cursor-pointer">
-        <div class="w-16 h-16 rounded-lg bg-gray-100 bg-center bg-cover shrink-0" style='background-image: url("${escapeHTML(p.thumb_url || p.image_url || '')}");'></div>
+      <div data-edit-prod="${p.id}" class="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-gray-50 cursor-pointer">
+        <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-lg bg-gray-100 bg-center bg-cover shrink-0" style='background-image: url("${escapeHTML(p.thumb_url || p.image_url || '')}");'></div>
         <div class="flex-1 min-w-0">
-          <p class="font-medium truncate">${escapeHTML(p.name)}</p>
+          <p class="font-medium truncate text-sm sm:text-base">${escapeHTML(p.name)}</p>
           <p class="text-xs text-gray-500 truncate">${p.category?.name ? escapeHTML(p.category.name) : 'Sin categoría'} · Stock ${p.stock}</p>
+          <div class="flex gap-1 mt-1 sm:hidden">
+            ${p.on_sale ? `<span class="bg-red-100 text-red-700 text-[10px] font-bold px-1.5 py-0.5 rounded">${p.discount_percent ? '-' + p.discount_percent + '%' : 'OFERTA'}</span>` : ''}
+            ${p.is_new ? '<span class="bg-primary/10 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded">NUEVO</span>' : ''}
+          </div>
         </div>
-        <div class="text-right whitespace-nowrap">
-          <p class="font-bold text-primary">${fmtPrice(p.price)}</p>
-          <div class="flex gap-1 justify-end mt-1">
+        <div class="text-right whitespace-nowrap shrink-0">
+          <p class="font-bold text-primary text-sm sm:text-base">${fmtPrice(p.price)}</p>
+          <div class="hidden sm:flex gap-1 justify-end mt-1">
             ${p.on_sale ? `<span class="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded">${p.discount_percent ? '-' + p.discount_percent + '%' : 'OFERTA'}</span>` : ''}
             ${p.is_new ? '<span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded">NUEVO</span>' : ''}
           </div>
         </div>
-        <span class="material-symbols-outlined text-gray-300">chevron_right</span>
+        <span class="material-symbols-outlined text-gray-300 hidden sm:inline">chevron_right</span>
       </div>`).join('');
   }
   $('#products-list').addEventListener('click', (e) => {
