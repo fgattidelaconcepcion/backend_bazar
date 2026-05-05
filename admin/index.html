@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta name="robots" content="noindex,nofollow"/>
+<title>Bazar Moderno · Admin</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=swap" rel="stylesheet"/>
+<script>
+  tailwind.config = { theme: { extend: { colors: { primary: '#f46325', 'background-light': '#f8f6f5' }, fontFamily: { display: ['Plus Jakarta Sans', 'sans-serif'] } } } }
+</script>
+<style>
+  body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400; }
+  .tab-active { border-color: #f46325; color: #f46325; }
+</style>
+</head>
+<body class="bg-background-light text-[#181311] min-h-screen">
+
+<section id="login-section" class="hidden min-h-screen flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-8">
+    <div class="text-center mb-6">
+      <div class="inline-flex items-center gap-2 mb-2">
+        <svg class="size-7 text-primary" fill="none" viewBox="0 0 48 48"><path clip-rule="evenodd" d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z" fill="currentColor" fill-rule="evenodd"></path></svg>
+        <h1 class="text-xl font-bold">Bazar Moderno</h1>
+      </div>
+      <p class="text-sm text-gray-500">Panel de administración</p>
+    </div>
+    <form id="login-form" class="flex flex-col gap-3">
+      <input name="email" type="email" placeholder="Email" required autocomplete="username" class="form-input rounded-lg border-gray-200 bg-gray-50 focus:ring-2 focus:ring-primary/40 focus:border-primary"/>
+      <input name="password" type="password" placeholder="Contraseña" required autocomplete="current-password" class="form-input rounded-lg border-gray-200 bg-gray-50 focus:ring-2 focus:ring-primary/40 focus:border-primary"/>
+      <button class="bg-primary text-white font-bold rounded-lg h-11 hover:bg-opacity-90">Entrar</button>
+      <p id="login-error" class="hidden text-red-600 text-sm text-center"></p>
+    </form>
+  </div>
+</section>
+
+<section id="app-section" class="hidden">
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+      <div class="flex items-center gap-3">
+        <svg class="size-6 text-primary" fill="none" viewBox="0 0 48 48"><path clip-rule="evenodd" d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z" fill="currentColor" fill-rule="evenodd"></path></svg>
+        <h1 class="text-base font-bold">Bazar Moderno · <span class="text-primary">Admin</span></h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <span id="user-label" class="text-sm text-gray-600 hidden sm:inline"></span>
+        <span id="storage-badge" class="hidden sm:inline text-[11px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium"></span>
+        <button id="btn-logout" class="text-sm text-gray-500 hover:text-red-600 flex items-center gap-1">
+          <span class="material-symbols-outlined text-xl">logout</span>
+          <span class="hidden sm:inline">Salir</span>
+        </button>
+      </div>
+    </div>
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-6">
+      <button data-tab="products" class="tab-btn h-11 border-b-2 border-transparent text-gray-500 font-medium px-1">Productos</button>
+      <button data-tab="categories" class="tab-btn h-11 border-b-2 border-transparent text-gray-500 font-medium px-1">Categorías</button>
+      <button data-tab="uploads" class="tab-btn h-11 border-b-2 border-transparent text-gray-500 font-medium px-1">Archivos</button>
+      <button data-tab="settings" class="tab-btn h-11 border-b-2 border-transparent text-gray-500 font-medium px-1">Ajustes</button>
+    </nav>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div id="tab-products" class="tab-pane">
+      <div class="flex items-center justify-between mb-4">
+        <div><h2 class="text-2xl font-bold">Productos</h2><p class="text-sm text-gray-500">Gestioná el catálogo del bazar.</p></div>
+        <button id="btn-new-product" class="bg-primary text-white rounded-lg h-10 px-4 font-bold hover:bg-opacity-90 flex items-center gap-1"><span class="material-symbols-outlined text-xl">add</span>Nuevo producto</button>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div id="products-list" class="divide-y divide-gray-100"><p class="text-center text-gray-500 py-12">Cargando…</p></div>
+      </div>
+    </div>
+
+    <div id="tab-categories" class="tab-pane hidden">
+      <div class="flex items-center justify-between mb-4">
+        <div><h2 class="text-2xl font-bold">Categorías</h2><p class="text-sm text-gray-500">Cada producto puede pertenecer a una categoría.</p></div>
+        <button id="btn-new-category" class="bg-primary text-white rounded-lg h-10 px-4 font-bold hover:bg-opacity-90 flex items-center gap-1"><span class="material-symbols-outlined text-xl">add</span>Nueva categoría</button>
+      </div>
+      <div id="categories-list" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"><p class="text-center text-gray-500 py-12 col-span-full">Cargando…</p></div>
+    </div>
+
+    <div id="tab-uploads" class="tab-pane hidden">
+      <div class="grid lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-1 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 class="font-bold mb-1">Subir archivo</h2>
+          <p class="text-sm text-gray-500 mb-4">Imágenes (se optimizan a WebP) o videos.</p>
+          <label class="block"><span class="text-xs font-medium">Tipo</span><select id="upload-kind" class="form-select w-full rounded-lg border-gray-200 mt-1"><option value="image">Imagen</option><option value="video">Video</option></select></label>
+          <label class="block mt-3"><span class="text-xs font-medium">Archivo</span><input id="upload-file" type="file" class="block w-full mt-1 text-sm file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"/></label>
+          <button id="upload-submit" class="mt-4 w-full bg-primary text-white font-bold rounded-lg h-10 hover:bg-opacity-90 disabled:opacity-50">Subir</button>
+          <div id="upload-result" class="mt-4 hidden p-3 bg-green-50 border border-green-200 rounded-lg text-sm"></div>
+        </div>
+        <div class="lg:col-span-2">
+          <h2 class="font-bold mb-3">Historial</h2>
+          <div id="uploads-list" class="grid grid-cols-2 sm:grid-cols-3 gap-3"><p class="text-center text-gray-500 py-12 col-span-full">Cargando…</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== TAB: AJUSTES ====== -->
+    <div id="tab-settings" class="tab-pane hidden">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-2xl font-bold">Ajustes del sitio</h2>
+          <p class="text-sm text-gray-500">Información que aparece en el footer del sitio público.</p>
+        </div>
+      </div>
+      <form id="settings-form" class="space-y-6">
+        <!-- Marca -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 class="font-bold mb-1">Marca</h3>
+          <p class="text-xs text-gray-500 mb-4">Texto descriptivo y línea de copyright del footer.</p>
+          <div class="grid gap-3">
+            <label class="block"><span class="text-sm font-medium">Descripción de la marca</span>
+              <textarea name="brand_description" rows="2" class="form-textarea w-full rounded-lg border-gray-200 mt-1" placeholder="Tu tienda de confianza para un hogar con estilo."></textarea>
+            </label>
+            <label class="block"><span class="text-sm font-medium">Texto de copyright</span>
+              <input name="copyright_text" class="form-input w-full rounded-lg border-gray-200 mt-1" placeholder="© 2026 Bazar Moderno. Todos los derechos reservados."/>
+            </label>
+          </div>
+        </div>
+
+        <!-- Contacto -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 class="font-bold mb-1">Información de contacto</h3>
+          <p class="text-xs text-gray-500 mb-4">Aparece en la columna "Contacto" del footer. Vacío = no se muestra.</p>
+          <div class="grid sm:grid-cols-2 gap-3">
+            <label class="block"><span class="text-sm font-medium">Email</span>
+              <input name="contact_email" type="email" class="form-input w-full rounded-lg border-gray-200 mt-1" placeholder="hola@bazarmoderno.com"/>
+            </label>
+            <label class="block"><span class="text-sm font-medium">Teléfono</span>
+              <input name="contact_phone" class="form-input w-full rounded-lg border-gray-200 mt-1" placeholder="+54 11 1234-5678"/>
+            </label>
+            <label class="block sm:col-span-2"><span class="text-sm font-medium">Dirección</span>
+              <input name="contact_address" class="form-input w-full rounded-lg border-gray-200 mt-1" placeholder="Av. Corrientes 1234, CABA"/>
+            </label>
+          </div>
+        </div>
+
+        <!-- Redes sociales -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 class="font-bold mb-1">Redes sociales</h3>
+          <p class="text-xs text-gray-500 mb-4">Pegá la URL completa. Solo se muestran las que tengan valor.</p>
+          <div class="grid gap-3">
+            <label class="block"><span class="text-sm font-medium">Instagram</span>
+              <input name="social_instagram" type="url" class="form-input w-full rounded-lg border-gray-200 mt-1" placeholder="https://instagram.com/bazarmoderno"/>
+            </label>
+            <label class="block"><span class="text-sm font-medium">Facebook</span>
+              <input name="social_facebook" type="url" class="form-input w-full rounded-lg border-gray-200 mt-1" placeholder="https://facebook.com/bazarmoderno"/>
+            </label>
+            <label class="block"><span class="text-sm font-medium">WhatsApp</span>
+              <input name="social_whatsapp" type="url" class="form-input w-full rounded-lg border-gray-200 mt-1" placeholder="https://wa.me/541112345678"/>
+              <span class="text-xs text-gray-500">Generá tu link en wa.me/&lt;tu-numero&gt; (sin + ni espacios).</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Páginas del footer -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 class="font-bold mb-1">Páginas del footer</h3>
+          <p class="text-xs text-gray-500 mb-4">El contenido se muestra en un modal cuando el cliente clickea cada link.</p>
+          <div class="grid gap-3">
+            <label class="block"><span class="text-sm font-medium">Sobre nosotros</span>
+              <textarea name="page_about" rows="3" class="form-textarea w-full rounded-lg border-gray-200 mt-1"></textarea>
+            </label>
+            <label class="block"><span class="text-sm font-medium">Contacto</span>
+              <textarea name="page_contact" rows="3" class="form-textarea w-full rounded-lg border-gray-200 mt-1"></textarea>
+            </label>
+            <label class="block"><span class="text-sm font-medium">Preguntas frecuentes</span>
+              <textarea name="page_faqs" rows="4" class="form-textarea w-full rounded-lg border-gray-200 mt-1"></textarea>
+            </label>
+            <label class="block"><span class="text-sm font-medium">Envíos</span>
+              <textarea name="page_shipping" rows="3" class="form-textarea w-full rounded-lg border-gray-200 mt-1"></textarea>
+            </label>
+            <label class="block"><span class="text-sm font-medium">Devoluciones</span>
+              <textarea name="page_returns" rows="3" class="form-textarea w-full rounded-lg border-gray-200 mt-1"></textarea>
+            </label>
+            <label class="block"><span class="text-sm font-medium">Política de Privacidad</span>
+              <textarea name="page_privacy" rows="3" class="form-textarea w-full rounded-lg border-gray-200 mt-1"></textarea>
+            </label>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 sticky bottom-4 bg-background-light/90 backdrop-blur p-3 rounded-lg">
+          <button type="button" id="settings-reload" class="px-4 h-10 rounded-lg text-gray-600 hover:bg-gray-100">Descartar cambios</button>
+          <button type="submit" class="bg-primary text-white font-bold rounded-lg h-10 px-6 hover:bg-opacity-90 flex items-center gap-1">
+            <span class="material-symbols-outlined text-xl">save</span>Guardar ajustes
+          </button>
+        </div>
+      </form>
+    </div>
+  </main>
+</section>
+
+<div id="product-modal" class="hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between p-4 border-b border-gray-200 sticky top-0 bg-white">
+      <h3 id="product-modal-title" class="font-bold text-lg">Nuevo producto</h3>
+      <button class="modal-close text-gray-500 hover:text-black"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <form id="product-form" class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <input type="hidden" name="id"/>
+      <label class="block sm:col-span-2"><span class="text-sm font-medium">Nombre *</span><input name="name" required class="form-input w-full rounded-lg border-gray-200 mt-1"/></label>
+      <label class="block sm:col-span-2"><span class="text-sm font-medium">Descripción</span><textarea name="description" rows="3" class="form-textarea w-full rounded-lg border-gray-200 mt-1"></textarea></label>
+      <label class="block"><span class="text-sm font-medium">Precio *</span><input name="price" type="number" min="0" step="0.01" required class="form-input w-full rounded-lg border-gray-200 mt-1"/></label>
+      <label class="block"><span class="text-sm font-medium">Precio original (oferta)</span><input name="original_price" type="number" min="0" step="0.01" placeholder="Vacío si no es oferta" class="form-input w-full rounded-lg border-gray-200 mt-1"/></label>
+      <label class="block"><span class="text-sm font-medium">Categoría</span><select name="category_id" class="form-select w-full rounded-lg border-gray-200 mt-1"><option value="">— sin categoría —</option></select></label>
+      <label class="block"><span class="text-sm font-medium">Stock</span><input name="stock" type="number" min="0" value="0" class="form-input w-full rounded-lg border-gray-200 mt-1"/></label>
+      <div class="block sm:col-span-2">
+        <span class="text-sm font-medium">Imagen del producto</span>
+        <div class="mt-1 flex items-center gap-3">
+          <div id="product-image-preview" class="w-20 h-20 rounded-lg bg-gray-100 bg-center bg-cover border border-gray-200 shrink-0"></div>
+          <input type="file" id="product-image-file" accept="image/*" class="text-sm file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"/>
+          <input type="hidden" name="image_url"/>
+          <input type="hidden" name="thumb_url"/>
+        </div>
+        <p id="product-image-status" class="text-xs text-gray-500 mt-1"></p>
+      </div>
+      <div class="block sm:col-span-2">
+        <span class="text-sm font-medium">Video (opcional)</span>
+        <div class="mt-1 flex items-center gap-3">
+          <input type="file" id="product-video-file" accept="video/*" class="text-sm file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"/>
+          <input type="hidden" name="video_url"/>
+          <a id="product-video-link" href="#" target="_blank" class="hidden text-xs text-primary hover:underline">Ver video</a>
+        </div>
+        <p id="product-video-status" class="text-xs text-gray-500 mt-1"></p>
+      </div>
+      <label class="flex items-center gap-2"><input type="checkbox" name="is_new" class="form-checkbox text-primary rounded"/><span class="text-sm">Mostrar en "Novedades"</span></label>
+      <label class="flex items-center gap-2"><input type="checkbox" name="is_featured" class="form-checkbox text-primary rounded"/><span class="text-sm">Destacado</span></label>
+      <label class="block sm:col-span-2"><span class="text-sm font-medium">Fin de oferta (opcional)</span><input name="sale_ends_at" type="datetime-local" class="form-input w-full rounded-lg border-gray-200 mt-1"/></label>
+      <div class="sm:col-span-2 flex justify-between items-center pt-3 border-t border-gray-200">
+        <button type="button" id="btn-delete-product" class="hidden text-red-600 hover:text-red-700 text-sm font-medium flex items-center gap-1"><span class="material-symbols-outlined text-base">delete</span>Eliminar</button>
+        <div class="flex gap-2 ml-auto">
+          <button type="button" class="modal-close px-4 h-10 rounded-lg text-gray-600 hover:bg-gray-100">Cancelar</button>
+          <button type="submit" class="bg-primary text-white font-bold rounded-lg h-10 px-5 hover:bg-opacity-90">Guardar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="category-modal" class="hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-md">
+    <div class="flex items-center justify-between p-4 border-b border-gray-200">
+      <h3 id="category-modal-title" class="font-bold text-lg">Nueva categoría</h3>
+      <button class="modal-close text-gray-500 hover:text-black"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <form id="category-form" class="p-6 flex flex-col gap-3">
+      <input type="hidden" name="id"/>
+      <label class="block"><span class="text-sm font-medium">Nombre *</span><input name="name" required class="form-input w-full rounded-lg border-gray-200 mt-1"/></label>
+      <label class="block"><span class="text-sm font-medium">Slug *</span><input name="slug" required pattern="[a-z0-9-]+" class="form-input w-full rounded-lg border-gray-200 mt-1"/><span class="text-xs text-gray-500">Solo minúsculas, números y guiones.</span></label>
+      <div class="block">
+        <span class="text-sm font-medium">Imagen</span>
+        <div class="mt-1 flex items-center gap-3">
+          <div id="category-image-preview" class="w-20 h-20 rounded-lg bg-gray-100 bg-center bg-cover border border-gray-200 shrink-0"></div>
+          <input type="file" id="category-image-file" accept="image/*" class="text-sm"/>
+          <input type="hidden" name="image_url"/>
+        </div>
+        <p id="category-image-status" class="text-xs text-gray-500 mt-1"></p>
+      </div>
+      <div class="flex justify-between items-center pt-3 border-t border-gray-200 mt-3">
+        <button type="button" id="btn-delete-category" class="hidden text-red-600 hover:text-red-700 text-sm font-medium flex items-center gap-1"><span class="material-symbols-outlined text-base">delete</span>Eliminar</button>
+        <div class="flex gap-2 ml-auto">
+          <button type="button" class="modal-close px-4 h-10 rounded-lg text-gray-600 hover:bg-gray-100">Cancelar</button>
+          <button type="submit" class="bg-primary text-white font-bold rounded-lg h-10 px-5 hover:bg-opacity-90">Guardar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] bg-[#181311] text-white px-4 py-3 rounded-lg shadow-xl text-sm"></div>
+
+<script>
+(() => {
+  const API_BASE = (window.BAZAR_API || '') + '/api';
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const fmtPrice = n => '$' + Number(n).toFixed(2);
+  const escapeHTML = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+  const state = { token: localStorage.getItem('bazar_admin_token') || null, user: JSON.parse(localStorage.getItem('bazar_admin_user') || 'null'), products: [], categories: [] };
+
+  function toast(msg, isError = false) {
+    const el = $('#toast'); el.textContent = msg;
+    el.classList.toggle('bg-red-600', isError); el.classList.toggle('bg-[#181311]', !isError);
+    el.classList.remove('hidden'); setTimeout(() => el.classList.add('hidden'), 2500);
+  }
+
+  async function api(path, opts = {}) {
+    const isForm = opts.body instanceof FormData;
+    const headers = { ...(opts.headers || {}) };
+    if (!isForm && opts.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+    if (state.token) headers.Authorization = 'Bearer ' + state.token;
+    const res = await fetch(API_BASE + path, { ...opts, headers });
+    let body; try { body = await res.json(); } catch { body = {}; }
+    if (!res.ok) { if (res.status === 401) { logout(false); throw new Error('Sesión expirada'); } throw new Error(body.error || 'HTTP ' + res.status); }
+    return body;
+  }
+
+  async function showStorageBadge() {
+    try { const h = await api('/health'); const badge = $('#storage-badge'); if (h.storage) { badge.textContent = 'Storage: ' + h.storage; badge.classList.remove('hidden'); } } catch {}
+  }
+
+  function showLogin() { $('#login-section').classList.remove('hidden'); $('#app-section').classList.add('hidden'); }
+  function showApp() {
+    $('#login-section').classList.add('hidden'); $('#app-section').classList.remove('hidden');
+    $('#user-label').textContent = state.user?.email || '';
+    showStorageBadge();
+    activateTab('products'); loadCategories(); loadProducts();
+  }
+  function logout(notify = true) {
+    state.token = null; state.user = null;
+    localStorage.removeItem('bazar_admin_token'); localStorage.removeItem('bazar_admin_user');
+    if (notify) toast('Sesión cerrada'); showLogin();
+  }
+
+  $('#login-form').addEventListener('submit', async (e) => {
+    e.preventDefault(); $('#login-error').classList.add('hidden');
+    const fd = new FormData(e.target);
+    try {
+      const { user, token } = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email: fd.get('email'), password: fd.get('password') }) });
+      if (user.role !== 'admin') { $('#login-error').textContent = 'Esta cuenta no tiene permisos de administrador.'; $('#login-error').classList.remove('hidden'); return; }
+      state.token = token; state.user = user;
+      localStorage.setItem('bazar_admin_token', token); localStorage.setItem('bazar_admin_user', JSON.stringify(user));
+      showApp();
+    } catch (err) { $('#login-error').textContent = err.message; $('#login-error').classList.remove('hidden'); }
+  });
+  $('#btn-logout').addEventListener('click', () => logout());
+
+  function activateTab(name) {
+    $$('.tab-btn').forEach(b => { const a = b.dataset.tab === name; b.classList.toggle('tab-active', a); b.classList.toggle('text-gray-500', !a); });
+    $$('.tab-pane').forEach(p => p.classList.toggle('hidden', p.id !== 'tab-' + name));
+    if (name === 'uploads') loadUploads();
+    if (name === 'categories') loadCategoriesList();
+    if (name === 'settings') loadSettings();
+  }
+  $$('.tab-btn').forEach(b => b.addEventListener('click', () => activateTab(b.dataset.tab)));
+
+  async function loadCategories() {
+    const { categories } = await api('/categories');
+    state.categories = categories;
+    $('#product-form select[name=category_id]').innerHTML = '<option value="">— sin categoría —</option>' + categories.map(c => `<option value="${c.id}">${escapeHTML(c.name)}</option>`).join('');
+  }
+  function loadCategoriesList() {
+    const list = $('#categories-list');
+    if (!state.categories.length) { list.innerHTML = '<p class="col-span-full text-center text-gray-500 py-12">No hay categorías.</p>'; return; }
+    list.innerHTML = state.categories.map(c => `
+      <button data-edit-cat="${c.id}" class="bg-white rounded-xl border border-gray-200 hover:border-primary text-left overflow-hidden">
+        <div class="aspect-[3/2] bg-gray-100 bg-center bg-cover" style='background-image: url("${escapeHTML(c.image_url || '')}");'></div>
+        <div class="p-4"><p class="font-bold">${escapeHTML(c.name)}</p><p class="text-xs text-gray-500 mt-1">/${escapeHTML(c.slug)}</p></div>
+      </button>`).join('');
+  }
+  $('#categories-list').addEventListener('click', (e) => {
+    const t = e.target.closest('[data-edit-cat]');
+    if (t) openCategoryModal(state.categories.find(c => c.id === Number(t.dataset.editCat)));
+  });
+  $('#btn-new-category').addEventListener('click', () => openCategoryModal(null));
+
+  function openCategoryModal(cat) {
+    const f = $('#category-form'); f.reset();
+    $('#category-modal-title').textContent = cat ? 'Editar categoría' : 'Nueva categoría';
+    f.elements.id.value = cat?.id || ''; f.elements.name.value = cat?.name || '';
+    f.elements.slug.value = cat?.slug || ''; f.elements.image_url.value = cat?.image_url || '';
+    $('#category-image-preview').style.backgroundImage = cat?.image_url ? `url("${cat.image_url}")` : '';
+    $('#category-image-status').textContent = '';
+    $('#btn-delete-category').classList.toggle('hidden', !cat);
+    $('#category-modal').classList.remove('hidden');
+  }
+  $('#category-image-file').addEventListener('change', async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    $('#category-image-status').textContent = 'Subiendo y optimizando…';
+    try {
+      const fd = new FormData(); fd.append('file', file);
+      const r = await api('/uploads/image', { method: 'POST', body: fd });
+      $('#category-form').elements.image_url.value = r.url;
+      $('#category-image-preview').style.backgroundImage = `url("${r.url}")`;
+      $('#category-image-status').textContent = `✓ Subida (${(r.size_bytes/1024).toFixed(1)} KB · ${r.width}×${r.height})`;
+    } catch (err) { $('#category-image-status').textContent = 'Error: ' + err.message; }
+  });
+  $('#category-form').addEventListener('submit', async (e) => {
+    e.preventDefault(); const f = e.target; const id = f.elements.id.value;
+    const data = { name: f.elements.name.value.trim(), slug: f.elements.slug.value.trim(), image_url: f.elements.image_url.value || null };
+    try {
+      if (id) await api('/categories/' + id, { method: 'PUT', body: JSON.stringify(data) });
+      else await api('/categories', { method: 'POST', body: JSON.stringify(data) });
+      $('#category-modal').classList.add('hidden'); toast(id ? 'Actualizada' : 'Creada');
+      await loadCategories(); loadCategoriesList();
+    } catch (err) { toast(err.message, true); }
+  });
+  $('#btn-delete-category').addEventListener('click', async () => {
+    const id = $('#category-form').elements.id.value; if (!id) return;
+    if (!confirm('¿Eliminar?')) return;
+    try { await api('/categories/' + id, { method: 'DELETE' }); $('#category-modal').classList.add('hidden'); toast('Eliminada'); await loadCategories(); loadCategoriesList(); }
+    catch (err) { toast(err.message, true); }
+  });
+
+  async function loadProducts() {
+    try { const { products } = await api('/products?limit=100&sort=newest'); state.products = products; renderProductsList(); }
+    catch (err) { $('#products-list').innerHTML = `<p class="text-center text-red-600 py-12">${escapeHTML(err.message)}</p>`; }
+  }
+  function renderProductsList() {
+    const list = $('#products-list');
+    if (!state.products.length) { list.innerHTML = '<p class="text-center text-gray-500 py-12">Sin productos.</p>'; return; }
+    list.innerHTML = state.products.map(p => `
+      <div data-edit-prod="${p.id}" class="flex items-center gap-4 p-4 hover:bg-gray-50 cursor-pointer">
+        <div class="w-16 h-16 rounded-lg bg-gray-100 bg-center bg-cover shrink-0" style='background-image: url("${escapeHTML(p.thumb_url || p.image_url || '')}");'></div>
+        <div class="flex-1 min-w-0">
+          <p class="font-medium truncate">${escapeHTML(p.name)}</p>
+          <p class="text-xs text-gray-500 truncate">${p.category?.name ? escapeHTML(p.category.name) : 'Sin categoría'} · Stock ${p.stock}</p>
+        </div>
+        <div class="text-right whitespace-nowrap">
+          <p class="font-bold text-primary">${fmtPrice(p.price)}</p>
+          <div class="flex gap-1 justify-end mt-1">
+            ${p.on_sale ? `<span class="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded">${p.discount_percent ? '-' + p.discount_percent + '%' : 'OFERTA'}</span>` : ''}
+            ${p.is_new ? '<span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded">NUEVO</span>' : ''}
+          </div>
+        </div>
+        <span class="material-symbols-outlined text-gray-300">chevron_right</span>
+      </div>`).join('');
+  }
+  $('#products-list').addEventListener('click', (e) => {
+    const t = e.target.closest('[data-edit-prod]');
+    if (t) openProductModal(state.products.find(p => p.id === Number(t.dataset.editProd)));
+  });
+  $('#btn-new-product').addEventListener('click', () => openProductModal(null));
+
+  function toLocalDateTime(iso) {
+    if (!iso) return ''; const d = new Date(iso); if (isNaN(d.getTime())) return '';
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  }
+
+  function openProductModal(p) {
+    const f = $('#product-form'); f.reset();
+    $('#product-modal-title').textContent = p ? 'Editar producto' : 'Nuevo producto';
+    f.elements.id.value = p?.id || ''; f.elements.name.value = p?.name || '';
+    f.elements.description.value = p?.description || ''; f.elements.price.value = p?.price ?? '';
+    f.elements.original_price.value = p?.original_price ?? '';
+    f.elements.category_id.value = p?.category?.id || '';
+    f.elements.stock.value = p?.stock ?? 0;
+    f.elements.is_new.checked = !!p?.is_new; f.elements.is_featured.checked = !!p?.is_featured;
+    f.elements.sale_ends_at.value = toLocalDateTime(p?.sale_ends_at);
+    f.elements.image_url.value = p?.image_url || ''; f.elements.thumb_url.value = p?.thumb_url || ''; f.elements.video_url.value = p?.video_url || '';
+    $('#product-image-preview').style.backgroundImage = p?.image_url ? `url("${p.image_url}")` : '';
+    $('#product-image-status').textContent = ''; $('#product-video-status').textContent = '';
+    const vlink = $('#product-video-link');
+    if (p?.video_url) { vlink.href = p.video_url; vlink.classList.remove('hidden'); } else vlink.classList.add('hidden');
+    $('#btn-delete-product').classList.toggle('hidden', !p);
+    $('#product-modal').classList.remove('hidden');
+  }
+  $('#product-image-file').addEventListener('change', async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    $('#product-image-status').textContent = 'Subiendo y optimizando…';
+    try {
+      const fd = new FormData(); fd.append('file', file);
+      const r = await api('/uploads/image', { method: 'POST', body: fd });
+      $('#product-form').elements.image_url.value = r.url; $('#product-form').elements.thumb_url.value = r.thumb_url;
+      $('#product-image-preview').style.backgroundImage = `url("${r.url}")`;
+      $('#product-image-status').textContent = `✓ ${(r.original_size_bytes/1024).toFixed(0)} KB → ${(r.size_bytes/1024).toFixed(1)} KB · ${r.width}×${r.height} (${r.storage})`;
+    } catch (err) { $('#product-image-status').textContent = 'Error: ' + err.message; }
+  });
+  $('#product-video-file').addEventListener('change', async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    $('#product-video-status').textContent = 'Subiendo video…';
+    try {
+      const fd = new FormData(); fd.append('file', file);
+      const r = await api('/uploads/video', { method: 'POST', body: fd });
+      $('#product-form').elements.video_url.value = r.url;
+      const vlink = $('#product-video-link'); vlink.href = r.url; vlink.classList.remove('hidden');
+      $('#product-video-status').textContent = `✓ ${(r.size_bytes/1024/1024).toFixed(1)} MB (${r.storage})`;
+    } catch (err) { $('#product-video-status').textContent = 'Error: ' + err.message; }
+  });
+  $('#product-form').addEventListener('submit', async (e) => {
+    e.preventDefault(); const f = e.target; const id = f.elements.id.value;
+    const data = {
+      name: f.elements.name.value.trim(), description: f.elements.description.value.trim() || null,
+      price: Number(f.elements.price.value), original_price: f.elements.original_price.value ? Number(f.elements.original_price.value) : null,
+      category_id: f.elements.category_id.value ? Number(f.elements.category_id.value) : null,
+      stock: Number(f.elements.stock.value || 0),
+      is_new: f.elements.is_new.checked ? 1 : 0, is_featured: f.elements.is_featured.checked ? 1 : 0,
+      sale_ends_at: f.elements.sale_ends_at.value ? new Date(f.elements.sale_ends_at.value).toISOString() : null,
+      image_url: f.elements.image_url.value || null, thumb_url: f.elements.thumb_url.value || null, video_url: f.elements.video_url.value || null
+    };
+    try {
+      if (id) await api('/products/' + id, { method: 'PUT', body: JSON.stringify(data) });
+      else await api('/products', { method: 'POST', body: JSON.stringify(data) });
+      $('#product-modal').classList.add('hidden'); toast(id ? 'Actualizado' : 'Creado'); loadProducts();
+    } catch (err) { toast(err.message, true); }
+  });
+  $('#btn-delete-product').addEventListener('click', async () => {
+    const id = $('#product-form').elements.id.value; if (!id) return;
+    if (!confirm('¿Eliminar este producto?')) return;
+    try { await api('/products/' + id, { method: 'DELETE' }); $('#product-modal').classList.add('hidden'); toast('Eliminado'); loadProducts(); }
+    catch (err) { toast(err.message, true); }
+  });
+
+  $$('.modal-close').forEach(b => b.addEventListener('click', () => { $('#product-modal').classList.add('hidden'); $('#category-modal').classList.add('hidden'); }));
+  [$('#product-modal'), $('#category-modal')].forEach(m => m.addEventListener('click', (e) => { if (e.target === m) m.classList.add('hidden'); }));
+
+  async function loadUploads() {
+    const list = $('#uploads-list'); list.innerHTML = '<p class="text-center text-gray-500 py-12 col-span-full">Cargando…</p>';
+    try {
+      const { uploads } = await api('/uploads');
+      if (!uploads.length) { list.innerHTML = '<p class="text-center text-gray-500 py-12 col-span-full">No hay archivos subidos aún.</p>'; return; }
+      list.innerHTML = uploads.map(u => `
+        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden group relative">
+          ${u.kind === 'image' ? `<div class="aspect-square bg-cover bg-center" style='background-image: url("${escapeHTML(u.thumb_url || u.url)}");'></div>` : `<div class="aspect-square bg-gray-100 flex items-center justify-center"><span class="material-symbols-outlined text-5xl text-gray-400">play_circle</span></div>`}
+          <div class="p-2 text-xs"><p class="font-medium truncate">${u.kind === 'image' ? 'Imagen' : 'Video'}</p><p class="text-gray-500">${(u.size_bytes/1024).toFixed(1)} KB${u.width ? ` · ${u.width}×${u.height}` : ''}</p></div>
+          <div class="absolute top-1 right-1 flex gap-1">
+            <a href="${escapeHTML(u.url)}" target="_blank" class="bg-white/90 hover:bg-white rounded p-1 shadow"><span class="material-symbols-outlined text-base">open_in_new</span></a>
+            <button data-del-upload="${u.id}" class="bg-white/90 hover:bg-red-100 text-red-600 rounded p-1 shadow"><span class="material-symbols-outlined text-base">delete</span></button>
+          </div>
+        </div>`).join('');
+    } catch (err) { list.innerHTML = `<p class="text-center text-red-600 py-12 col-span-full">${escapeHTML(err.message)}</p>`; }
+  }
+  $('#uploads-list').addEventListener('click', async (e) => {
+    const t = e.target.closest('[data-del-upload]'); if (!t) return;
+    if (!confirm('¿Eliminar este archivo?')) return;
+    try { await api('/uploads/' + t.dataset.delUpload, { method: 'DELETE' }); toast('Eliminado'); loadUploads(); }
+    catch (err) { toast(err.message, true); }
+  });
+  $('#upload-submit').addEventListener('click', async () => {
+    const file = $('#upload-file').files[0]; if (!file) return toast('Elegí un archivo', true);
+    const kind = $('#upload-kind').value;
+    const btn = $('#upload-submit'); btn.disabled = true; btn.textContent = 'Subiendo…';
+    try {
+      const fd = new FormData(); fd.append('file', file);
+      const r = await api('/uploads/' + kind, { method: 'POST', body: fd });
+      $('#upload-result').innerHTML = `
+        <p class="font-bold text-green-700">✓ Subido a ${r.storage}</p>
+        <p class="break-all mt-1"><a href="${escapeHTML(r.url)}" target="_blank" class="text-primary hover:underline">${escapeHTML(r.url)}</a></p>
+        ${r.original_size_bytes ? `<p class="text-xs text-gray-600 mt-1">${(r.original_size_bytes/1024).toFixed(0)} KB → ${(r.size_bytes/1024).toFixed(1)} KB · ${r.width}×${r.height}</p>` : `<p class="text-xs text-gray-600 mt-1">${(r.size_bytes/1024/1024).toFixed(2)} MB</p>`}`;
+      $('#upload-result').classList.remove('hidden'); $('#upload-file').value = ''; loadUploads();
+    } catch (err) { toast(err.message, true); }
+    finally { btn.disabled = false; btn.textContent = 'Subir'; }
+  });
+
+  // ===== Ajustes =====
+  async function loadSettings() {
+    try {
+      const { settings } = await api('/settings');
+      const f = $('#settings-form');
+      Object.entries(settings).forEach(([k, v]) => {
+        if (f.elements[k]) f.elements[k].value = v ?? '';
+      });
+    } catch (err) { toast(err.message, true); }
+  }
+
+  $('#settings-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const data = {};
+    for (const el of f.elements) {
+      if (el.name) data[el.name] = el.value;
+    }
+    const btn = f.querySelector('button[type=submit]');
+    btn.disabled = true;
+    try {
+      await api('/settings', { method: 'PUT', body: JSON.stringify(data) });
+      toast('Ajustes guardados');
+    } catch (err) {
+      toast(err.message, true);
+    } finally { btn.disabled = false; }
+  });
+
+  $('#settings-reload').addEventListener('click', () => loadSettings());
+
+  if (state.token && state.user?.role === 'admin') showApp(); else showLogin();
+})();
+</script>
+</body></html>
