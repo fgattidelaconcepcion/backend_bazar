@@ -343,7 +343,7 @@
   const section = $('#search-section');
 
   // Primero hacemos scroll suave hacia arriba
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+ smoothScrollTo(0, window.innerWidth < 768 ? 900 : 700);
 
   // Esperamos a que el scroll termine antes de ocultar
   setTimeout(() => {
@@ -600,6 +600,28 @@
     if (e.target.closest('[data-cat],[data-page]')) closeMobileMenu();
   });
 
+  function smoothScrollTo(targetY, duration = 800) {
+  const startY = window.scrollY;
+  const diff = targetY - startY;
+  let start;
+
+  const easing = t =>
+    t < 0.5
+      ? 4 * t * t * t
+      : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+  function step(timestamp) {
+    if (!start) start = timestamp;
+    const progress = Math.min((timestamp - start) / duration, 1);
+    const ease = easing(progress);
+
+    window.scrollTo(0, startY + diff * ease);
+
+    if (progress < 1) requestAnimationFrame(step);
+  }
+
+  requestAnimationFrame(step);
+}
   // ===== Boot =====
   loadSettings();
   loadCategories();
