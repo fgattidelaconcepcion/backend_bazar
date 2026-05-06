@@ -339,11 +339,18 @@
     } catch (e) { $('#search-loading').textContent = 'Error: ' + e.message; }
   }
 
-  $('#search-clear').addEventListener('click', () => {
-    $('#search-section').classList.add('hidden');
+ $('#search-clear').addEventListener('click', () => {
+  const section = $('#search-section');
+
+  // Primero hacemos scroll suave hacia arriba
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Esperamos a que el scroll termine antes de ocultar
+  setTimeout(() => {
+    section.classList.add('hidden');
     $('#search-input').value = '';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  });
+  }, 400); // podés ajustar: 300–600ms
+});
 
   // ===== AUTOCOMPLETE =====
   let acTimer = null;
