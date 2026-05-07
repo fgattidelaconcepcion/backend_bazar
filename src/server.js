@@ -3,6 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const fs = require("fs");
 
 const authRoutes = require("./routes/auth");
 const categoryRoutes = require("./routes/categories");
@@ -26,31 +27,34 @@ app.use((req, _res, next) => {
   next();
 });
 
-// Servir uploads locales (solo cuando el adapter es local)
+// Servir uploads locales (solo cuando el adapter es local).
+// Cuando storage.kind === 'r2', las imagenes se sirven directamente desde
+// R2_PUBLIC_URL (no pasan por este server), asi que no montamos /uploads.
 if (storage.kind === "local") {
-  // Servir uploads locales
+  const uploadsDir = storage.getUploadsDir();
   app.use(
     "/uploads",
-    express.static("/tmp/uploads", {
+    express.static(uploadsDir, {
       maxAge: "30d",
       immutable: true,
       fallthrough: false,
     }),
   );
+  console.log("Sirviendo /uploads desde:", uploadsDir);
 }
+
 // Servir el panel admin desde /admin (si existe la carpeta admin/)
-const fs = require("fs");
 const ADMIN_DIR = path.resolve(__dirname, "..", "admin");
 if (fs.existsSync(ADMIN_DIR)) {
   app.use("/admin", express.static(ADMIN_DIR, { index: "index.html" }));
   console.log("Panel admin servido en /admin desde:", ADMIN_DIR);
 }
 
-// Servir el front público desde /public si existe
+// Servir el front publico desde /public si existe
 const PUBLIC_DIR = path.resolve(__dirname, "..", "public");
 if (fs.existsSync(PUBLIC_DIR)) {
   app.use(express.static(PUBLIC_DIR, { index: "index.html" }));
-  console.log("Front público servido en / desde:", PUBLIC_DIR);
+  console.log("Front publico servido en / desde:", PUBLIC_DIR);
 }
 
 app.get("/api/health", (_req, res) => {
@@ -83,5 +87,5 @@ app.use((err, _req, res, _next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🛒 Bazar Moderno API escuchando en http://localhost:${PORT}`);
+  console.log(`Bazar Moderno API escuchando en http://localhost:${PORT}`);
 });

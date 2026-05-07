@@ -1,21 +1,27 @@
-// Endpoints de uploads: imágenes (con optimización sharp -> WebP + thumb) y videos.
-// Las imágenes se procesan en streaming a memoria, no tocan disco hasta estar
-// optimizadas. Los videos se guardan tal cual con límite estricto de tamaño
-// (transcodificar en el server lo satura — para eso conviene Cloudinary/Mux).
+// Endpoints de uploads: imagenes (con optimizacion sharp -> WebP + thumb) y videos.
+//
+// Las imagenes se procesan en streaming a memoria (multer.memoryStorage) y se
+// pasan directamente al storage adapter. Los videos no se procesan: multer los
+// escribe a una carpeta temporal en disco y despues el adapter los mueve al
+// destino final (disco local o sube a R2).
+//
+// IMPORTANTE: este archivo NO sabe si esta usando disco local o R2. Toda la
+// logica de "donde guardar" vive en src/storage/{index,local,r2}.js. Aca solo
+// usamos saveBuffer / saveFromDiskPath / delete y el adapter resuelve.
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
+const os = require("os");
 const crypto = require("crypto");
 const multer = require("multer");
 const sharp = require("sharp");
 const db = require("../db/database");
+const storage = require("../storage");
 const { authMiddleware, adminMiddleware } = require("../middleware/auth");
 
 const router = express.Router();
 
 // --- Config ---
-const UPLOADS_DIR = "/tmp/uploads";
-const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || "").replace(/\/$/, "");
 const MAX_IMAGE_MB = parseInt(process.env.MAX_IMAGE_MB, 10) || 10;
 const MAX_VIDEO_MB = parseInt(process.env.MAX_VIDEO_MB, 10) || 100;
 const IMAGE_MAX_WIDTH = parseInt(process.env.IMAGE_MAX_WIDTH, 10) || 1600;
@@ -37,15 +43,13 @@ const VIDEO_MIMES = [
   "video/x-matroska",
 ];
 
-// Asegurar carpetas
-for (const sub of ["images", "videos", "thumbs"]) {
-  fs.mkdirSync(path.join(UPLOADS_DIR, sub), { recursive: true });
-}
+// Carpeta temporal donde multer escribe los videos antes de pasarlos al
+// adapter. En R2 el adapter sube el archivo y lo borra de aca. En local el
+// adapter mueve (rename) el archivo a uploads/videos/.
+const TMP_UPLOAD_DIR = path.join(os.tmpdir(), "bazar-uploads");
+fs.mkdirSync(TMP_UPLOAD_DIR, { recursive: true });
 
 // --- Multer ---
-// Para imágenes usamos memoryStorage (las procesamos con sharp y escribimos
-// sólo el resultado optimizado). Para videos usamos diskStorage para no
-// cargarlos en RAM.
 function rndName(ext = "") {
   return crypto.randomBytes(12).toString("hex") + ext;
 }
@@ -61,8 +65,7 @@ const imageUpload = multer({
 
 const videoUpload = multer({
   storage: multer.diskStorage({
-    destination: (_req, _file, cb) =>
-      cb(null, path.join(UPLOADS_DIR, "videos")),
+    destination: (_req, _file, cb) => cb(null, TMP_UPLOAD_DIR),
     filename: (_req, file, cb) =>
       cb(null, rndName(path.extname(file.originalname).toLowerCase())),
   }),
@@ -72,11 +75,6 @@ const videoUpload = multer({
     else cb(new Error("Tipo de video no permitido"));
   },
 });
-
-function publicUrl(relPath) {
-  if (PUBLIC_BASE_URL) return `${PUBLIC_BASE_URL}/uploads/${relPath}`;
-  return `/uploads/${relPath}`;
-}
 
 // --- Errores de multer en formato JSON ---
 function multerErrorHandler(err, _req, res, _next) {
@@ -98,26 +96,22 @@ router.post("/image", authMiddleware, adminMiddleware, (req, res, next) => {
     if (!req.file)
       return res
         .status(400)
-        .json({ error: 'No se recibió ningún archivo (campo "file")' });
+        .json({ error: 'No se recibio ningun archivo (campo "file")' });
 
     try {
       const baseName = rndName("");
       const fullName = `${baseName}.webp`;
       const thumbName = `${baseName}_thumb.webp`;
 
-      // Imagen optimizada: limita al ancho máximo y convierte a WebP.
+      // Imagen optimizada: limita al ancho maximo y convierte a WebP.
       const main = sharp(req.file.buffer, { failOn: "truncated" })
-        .rotate() // respeta orientación EXIF
+        .rotate()
         .resize({ width: IMAGE_MAX_WIDTH, withoutEnlargement: true })
         .webp({ quality: IMAGE_QUALITY });
 
       const { data: mainData, info: mainInfo } = await main.toBuffer({
         resolveWithObject: true,
       });
-      await fs.promises.writeFile(
-        path.join(UPLOADS_DIR, "images", fullName),
-        mainData,
-      );
 
       // Thumbnail
       const thumbData = await sharp(req.file.buffer)
@@ -125,13 +119,23 @@ router.post("/image", authMiddleware, adminMiddleware, (req, res, next) => {
         .resize({ width: THUMB_WIDTH, withoutEnlargement: true })
         .webp({ quality: 75 })
         .toBuffer();
-      await fs.promises.writeFile(
-        path.join(UPLOADS_DIR, "thumbs", thumbName),
+
+      // Guardar en el storage (local o R2 segun .env)
+      const mainSaved = await storage.saveBuffer(
+        mainData,
+        "images",
+        fullName,
+        "image/webp",
+      );
+      const thumbSaved = await storage.saveBuffer(
         thumbData,
+        "thumbs",
+        thumbName,
+        "image/webp",
       );
 
-      const url = publicUrl(`images/${fullName}`);
-      const thumb_url = publicUrl(`thumbs/${thumbName}`);
+      const url = mainSaved.url;
+      const thumb_url = thumbSaved.url;
 
       db.prepare(
         `INSERT INTO uploads (user_id, kind, filename, url, thumb_url, mime, size_bytes, width, height)
@@ -166,37 +170,52 @@ router.post("/image", authMiddleware, adminMiddleware, (req, res, next) => {
 // POST /api/uploads/video  (admin)
 // FormData: file = <video>
 router.post("/video", authMiddleware, adminMiddleware, (req, res, next) => {
-  videoUpload.single("file")(req, res, (err) => {
+  videoUpload.single("file")(req, res, async (err) => {
     if (err) return multerErrorHandler(err, req, res, next);
     if (!req.file)
       return res
         .status(400)
-        .json({ error: 'No se recibió ningún archivo (campo "file")' });
+        .json({ error: 'No se recibio ningun archivo (campo "file")' });
 
-    const url = publicUrl(`videos/${req.file.filename}`);
+    try {
+      // El video ya esta en disco temporal. El adapter lo mueve a su lugar
+      // definitivo (disco local) o lo sube a R2 y borra el temporal.
+      const saved = await storage.saveFromDiskPath(
+        req.file.path,
+        "videos",
+        req.file.filename,
+        req.file.mimetype,
+      );
 
-    db.prepare(
-      `INSERT INTO uploads (user_id, kind, filename, url, mime, size_bytes)
-       VALUES (?, 'video', ?, ?, ?, ?)`,
-    ).run(
-      req.user.id,
-      req.file.filename,
-      url,
-      req.file.mimetype,
-      req.file.size,
-    );
+      db.prepare(
+        `INSERT INTO uploads (user_id, kind, filename, url, mime, size_bytes)
+         VALUES (?, 'video', ?, ?, ?, ?)`,
+      ).run(
+        req.user.id,
+        req.file.filename,
+        saved.url,
+        req.file.mimetype,
+        req.file.size,
+      );
 
-    res.status(201).json({
-      url,
-      kind: "video",
-      size_bytes: req.file.size,
-      mime: req.file.mimetype,
-      filename: req.file.filename,
-    });
+      res.status(201).json({
+        url: saved.url,
+        kind: "video",
+        size_bytes: req.file.size,
+        mime: req.file.mimetype,
+        filename: req.file.filename,
+      });
+    } catch (e) {
+      console.error("Video upload error:", e);
+      try {
+        await fs.promises.unlink(req.file.path);
+      } catch {}
+      res.status(500).json({ error: "No se pudo guardar el video" });
+    }
   });
 });
 
-// GET /api/uploads  (admin) - listar últimos uploads
+// GET /api/uploads  (admin) - listar ultimos uploads
 router.get("/", authMiddleware, adminMiddleware, (_req, res) => {
   const rows = db
     .prepare(
@@ -207,31 +226,29 @@ router.get("/", authMiddleware, adminMiddleware, (_req, res) => {
 });
 
 // DELETE /api/uploads/:id  (admin)
-router.delete("/:id", authMiddleware, adminMiddleware, (req, res) => {
+router.delete("/:id", authMiddleware, adminMiddleware, async (req, res) => {
   const id = Number(req.params.id);
   const row = db.prepare("SELECT * FROM uploads WHERE id = ?").get(id);
   if (!row) return res.status(404).json({ error: "Upload no encontrado" });
 
-  // Borrar archivos físicos (best-effort)
-  const tryUnlink = (p) => {
-    try {
-      fs.unlinkSync(p);
-    } catch {}
-  };
+  // Borrar del storage (local o R2). Es best-effort: si falla, igual sacamos
+  // el registro de la DB para no dejar referencias colgando.
   if (row.kind === "image") {
-    tryUnlink(path.join(UPLOADS_DIR, "images", row.filename));
+    await storage.delete("images", row.filename);
     if (row.thumb_url) {
-      const thumbName = path.basename(
-        new URL(row.thumb_url, "http://x").pathname,
-      );
-      tryUnlink(path.join(UPLOADS_DIR, "thumbs", thumbName));
+      try {
+        const thumbName = path.basename(
+          new URL(row.thumb_url, "http://x").pathname,
+        );
+        await storage.delete("thumbs", thumbName);
+      } catch {}
     }
   } else {
-    tryUnlink(path.join(UPLOADS_DIR, "videos", row.filename));
+    await storage.delete("videos", row.filename);
   }
 
   db.prepare("DELETE FROM uploads WHERE id = ?").run(id);
   res.json({ ok: true });
 });
 
-module.exports = { router, UPLOADS_DIR };
+module.exports = { router };
