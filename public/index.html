@@ -328,7 +328,17 @@
     $('#search-title').textContent = title;
     $('#search-loading').classList.remove('hidden');
     $('#search-grid').classList.add('hidden');
-    $('#search-section').scrollIntoView({ behavior: 'smooth' });
+
+    // Scroll suave hasta la sección, respetando el header sticky.
+    // Usamos smoothScrollTo (definida más abajo) en lugar de
+    // scrollIntoView({behavior:'smooth'}) porque en mobile Safari ese método
+    // cae a scroll instantáneo y se siente como un tirón.
+    const header = document.querySelector('header');
+    const headerH = header ? header.offsetHeight : 0;
+    const sectionRect = $('#search-section').getBoundingClientRect();
+    const targetY = Math.max(0, sectionRect.top + window.scrollY - headerH - 8);
+    smoothScrollTo(targetY, window.innerWidth < 768 ? 700 : 600);
+
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (category) params.set('category', category);
@@ -339,18 +349,19 @@
     } catch (e) { $('#search-loading').textContent = 'Error: ' + e.message; }
   }
 
- $('#search-clear').addEventListener('click', () => {
-  const section = $('#search-section');
+  $('#search-clear').addEventListener('click', () => {
+    const section = $('#search-section');
+    const dur = window.innerWidth < 768 ? 700 : 600;
 
-  // Primero hacemos scroll suave hacia arriba
- smoothScrollTo(0, window.innerWidth < 768 ? 900 : 700);
-
-  // Esperamos a que el scroll termine antes de ocultar
-  setTimeout(() => {
-    section.classList.add('hidden');
-    $('#search-input').value = '';
-  }, 400); // podés ajustar: 300–600ms
-});
+    // Scroll suave hacia arriba, después ocultar la sección. Sincronizamos
+    // el setTimeout con la duración real del scroll + un pequeño buffer
+    // para que el ocultamiento no se vea cortado.
+    smoothScrollTo(0, dur);
+    setTimeout(() => {
+      section.classList.add('hidden');
+      $('#search-input').value = '';
+    }, dur + 50);
+  });
 
   // ===== AUTOCOMPLETE =====
   let acTimer = null;
@@ -600,28 +611,34 @@
     if (e.target.closest('[data-cat],[data-page]')) closeMobileMenu();
   });
 
+  // Animacion de scroll suave personalizada. Usada por runSearchFull (al
+  // abrir una categoria) y por #search-clear (al cerrar). En mobile
+  // (Safari iOS especialmente) scrollIntoView({behavior:'smooth'}) cae a
+  // scroll instantaneo, por eso reimplementamos el smooth a mano con
+  // requestAnimationFrame y una curva de easing in/out cubic.
   function smoothScrollTo(targetY, duration = 800) {
-  const startY = window.scrollY;
-  const diff = targetY - startY;
-  let start;
+    const startY = window.scrollY;
+    const diff = targetY - startY;
+    let start;
 
-  const easing = t =>
-    t < 0.5
-      ? 4 * t * t * t
-      : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    const easing = t =>
+      t < 0.5
+        ? 4 * t * t * t
+        : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
-  function step(timestamp) {
-    if (!start) start = timestamp;
-    const progress = Math.min((timestamp - start) / duration, 1);
-    const ease = easing(progress);
+    function step(timestamp) {
+      if (!start) start = timestamp;
+      const progress = Math.min((timestamp - start) / duration, 1);
+      const ease = easing(progress);
 
-    window.scrollTo(0, startY + diff * ease);
+      window.scrollTo(0, startY + diff * ease);
 
-    if (progress < 1) requestAnimationFrame(step);
+      if (progress < 1) requestAnimationFrame(step);
+    }
+
+    requestAnimationFrame(step);
   }
 
-  requestAnimationFrame(step);
-}
   // ===== Boot =====
   loadSettings();
   loadCategories();
