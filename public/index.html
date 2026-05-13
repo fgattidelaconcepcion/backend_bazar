@@ -228,6 +228,49 @@
   </aside>
 </div>
 
+
+<!-- BOTON FLOTANTE DEL PEDIDO (visible cuando hay items en el armador) -->
+<button id="order-fab" class="hidden fixed bottom-4 right-4 z-[80] bg-primary text-white rounded-full shadow-2xl pl-4 pr-5 py-3 flex items-center gap-2 hover:scale-105 transition-transform" aria-label="Ver pedido">
+  <span class="material-symbols-outlined">shopping_bag</span>
+  <span class="font-bold text-sm">Mi pedido</span>
+  <span id="order-fab-count" class="bg-white text-primary rounded-full min-w-6 h-6 px-1.5 flex items-center justify-center text-xs font-bold">0</span>
+</button>
+
+<!-- MODAL DEL PEDIDO -->
+<div id="order-modal" class="hidden fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4">
+  <div class="bg-white dark:bg-background-dark rounded-t-2xl sm:rounded-xl shadow-2xl w-full sm:max-w-lg max-h-[95vh] sm:max-h-[90vh] flex flex-col">
+    <div class="flex items-center justify-between p-4 border-b border-black/10 dark:border-white/10">
+      <h3 class="text-lg font-bold">Mi pedido</h3>
+      <button id="order-close" class="text-gray-500 hover:text-black dark:hover:text-white p-1" aria-label="Cerrar"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <!-- Lista de items -->
+    <div id="order-items" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+    <!-- Total -->
+    <div id="order-total-row" class="hidden px-4 py-3 border-t border-black/10 dark:border-white/10 flex justify-between items-center">
+      <span class="text-sm font-medium">Total estimado</span>
+      <span id="order-total" class="text-primary text-xl font-bold">$0.00</span>
+    </div>
+    <!-- Form datos del cliente -->
+    <form id="order-form" class="border-t border-black/10 dark:border-white/10 p-4 space-y-3">
+      <p class="text-xs uppercase tracking-wider text-gray-500 font-bold">Tus datos</p>
+      <label class="block"><span class="text-xs font-medium">Nombre *</span>
+        <input name="name" required class="form-input w-full rounded-lg border-gray-300 mt-1 text-sm" autocomplete="name"/>
+      </label>
+      <label class="block"><span class="text-xs font-medium">Telefono *</span>
+        <input name="phone" required type="tel" inputmode="tel" class="form-input w-full rounded-lg border-gray-300 mt-1 text-sm" autocomplete="tel" placeholder="+54 11 1234-5678"/>
+      </label>
+      <label class="block"><span class="text-xs font-medium">Direccion *</span>
+        <input name="address" required class="form-input w-full rounded-lg border-gray-300 mt-1 text-sm" autocomplete="street-address"/>
+      </label>
+      <button type="submit" id="order-submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg h-12 flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+        <svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+        Enviar pedido por WhatsApp
+      </button>
+      <p id="order-submit-info" class="text-xs text-gray-500 text-center">Se abrira WhatsApp con el pedido listo para enviar.</p>
+    </form>
+  </div>
+</div>
+
 <!-- MODAL DETALLE DE PRODUCTO -->
 <div id="product-modal" class="hidden fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
   <div class="bg-white dark:bg-background-dark rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto relative">
@@ -279,6 +322,10 @@
         <p class="text-[#181311] dark:text-white text-base font-semibold line-clamp-2 h-12">${escapeHTML(p.name)}</p>
         ${priceBlock}
         ${p.category ? `<p class="text-xs text-gray-500">${escapeHTML(p.category.name)}</p>` : ''}
+        <button type="button" data-add-product="${p.id}" class="mt-1 w-full bg-primary hover:bg-opacity-90 text-white text-sm font-bold rounded-lg h-9 flex items-center justify-center gap-1 transition-colors">
+          <span class="material-symbols-outlined text-base">add_shopping_cart</span>
+          Agregar al pedido
+        </button>
       </div>
     </div>`;
   }
@@ -523,8 +570,12 @@
           <h2 class="text-2xl md:text-3xl font-bold">${escapeHTML(p.name)}</h2>
           ${priceBlock}
           ${p.description ? `<p class="text-gray-600 dark:text-white/70 leading-relaxed">${escapeHTML(p.description)}</p>` : ''}
-          ${p.stock > 0 ? '<p class="text-sm text-green-600 font-medium">✓ Disponible</p>' : '<p class="text-sm text-red-600 font-medium">✗ Sin stock</p>'}
+          ${p.stock > 0 ? '<p class="text-sm text-green-600 font-medium">Disponible</p>' : '<p class="text-sm text-red-600 font-medium">Sin stock</p>'}
           ${video}
+          <button type="button" data-add-product="${p.id}" class="mt-2 w-full bg-primary hover:bg-opacity-90 text-white font-bold rounded-lg h-11 flex items-center justify-center gap-2 transition-colors">
+            <span class="material-symbols-outlined">add_shopping_cart</span>
+            Agregar al pedido
+          </button>
         </div>`;
     } catch (e) {
       $('#product-body').innerHTML = '<p class="col-span-2 text-center text-red-600 py-12">Error: ' + escapeHTML(e.message) + '</p>';
@@ -549,6 +600,9 @@
       const { settings } = await api('/settings');
       SETTINGS = settings || {};
       renderFooter();
+      // Refrescar el armador: depende de SETTINGS.whatsapp_orders para
+      // habilitar/deshabilitar el boton de envio
+      if (typeof renderOrderUI === 'function') renderOrderUI();
     } catch (e) { console.warn('No se pudo cargar settings:', e.message); }
   }
 
@@ -639,7 +693,250 @@
     requestAnimationFrame(step);
   }
 
+
+  // ===== ARMADOR DE PEDIDOS (envio por WhatsApp) =====
+  // Estado persistente en localStorage. La forma es { items: [{id, name, price, qty}], customer: {name, phone, address} }.
+  const ORDER_LS_KEY = 'bazar_order_v1';
+
+  function loadOrderFromLS() {
+    try {
+      const raw = localStorage.getItem(ORDER_LS_KEY);
+      if (!raw) return { items: [], customer: { name: '', phone: '', address: '' } };
+      const parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.items)) throw new Error('formato invalido');
+      return {
+        items: parsed.items.filter(it => it && it.id && it.name && Number.isFinite(it.price) && Number.isFinite(it.qty) && it.qty > 0),
+        customer: {
+          name: parsed.customer?.name || '',
+          phone: parsed.customer?.phone || '',
+          address: parsed.customer?.address || ''
+        }
+      };
+    } catch {
+      return { items: [], customer: { name: '', phone: '', address: '' } };
+    }
+  }
+
+  let ORDER = loadOrderFromLS();
+
+  function saveOrder() {
+    localStorage.setItem(ORDER_LS_KEY, JSON.stringify(ORDER));
+    renderOrderUI();
+  }
+
+  function orderCount() {
+    return ORDER.items.reduce((acc, it) => acc + it.qty, 0);
+  }
+
+  function orderTotal() {
+    return ORDER.items.reduce((acc, it) => acc + it.price * it.qty, 0);
+  }
+
+  function addToOrder(p) {
+    const existing = ORDER.items.find(it => it.id === p.id);
+    if (existing) {
+      existing.qty += 1;
+    } else {
+      ORDER.items.push({ id: p.id, name: p.name, price: Number(p.price), qty: 1 });
+    }
+    saveOrder();
+    bumpFab();
+  }
+
+  function updateQty(id, delta) {
+    const it = ORDER.items.find(x => x.id === id);
+    if (!it) return;
+    it.qty = Math.max(0, it.qty + delta);
+    if (it.qty === 0) {
+      ORDER.items = ORDER.items.filter(x => x.id !== id);
+    }
+    saveOrder();
+  }
+
+  function removeItem(id) {
+    ORDER.items = ORDER.items.filter(x => x.id !== id);
+    saveOrder();
+  }
+
+  function clearOrder() {
+    ORDER.items = [];
+    saveOrder();
+  }
+
+  // Pequena animacion del FAB cuando se agrega un item, para feedback visual.
+  function bumpFab() {
+    const fab = $('#order-fab');
+    if (!fab || fab.classList.contains('hidden')) return;
+    fab.animate(
+      [{ transform: 'scale(1)' }, { transform: 'scale(1.15)' }, { transform: 'scale(1)' }],
+      { duration: 280, easing: 'ease-out' }
+    );
+  }
+
+  function renderOrderUI() {
+    const count = orderCount();
+    const fab = $('#order-fab');
+    $('#order-fab-count').textContent = String(count);
+    fab.classList.toggle('hidden', count === 0);
+
+    const itemsBox = $('#order-items');
+    if (count === 0) {
+      itemsBox.innerHTML = '<p class="text-center text-gray-500 py-12 text-sm">Todavia no agregaste productos al pedido.</p>';
+      $('#order-total-row').classList.add('hidden');
+    } else {
+      itemsBox.innerHTML = ORDER.items.map(it => `
+        <div class="flex items-center gap-3">
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium truncate">${escapeHTML(it.name)}</p>
+            <p class="text-xs text-gray-500">${fmtPrice(it.price)} c/u</p>
+          </div>
+          <div class="flex items-center gap-1 bg-black/5 dark:bg-white/5 rounded-lg">
+            <button type="button" data-qty-id="${it.id}" data-qty-delta="-1" class="w-8 h-8 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 rounded-l-lg" aria-label="Restar">
+              <span class="material-symbols-outlined text-base">remove</span>
+            </button>
+            <span class="w-6 text-center text-sm font-bold">${it.qty}</span>
+            <button type="button" data-qty-id="${it.id}" data-qty-delta="1" class="w-8 h-8 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 rounded-r-lg" aria-label="Sumar">
+              <span class="material-symbols-outlined text-base">add</span>
+            </button>
+          </div>
+          <p class="text-sm font-bold text-primary w-20 text-right">${fmtPrice(it.price * it.qty)}</p>
+          <button type="button" data-remove-id="${it.id}" class="text-gray-400 hover:text-red-600 p-1" aria-label="Quitar">
+            <span class="material-symbols-outlined text-lg">delete</span>
+          </button>
+        </div>
+      `).join('');
+      $('#order-total').textContent = fmtPrice(orderTotal());
+      $('#order-total-row').classList.remove('hidden');
+    }
+
+    // Refrescar el form con datos guardados del cliente
+    const form = $('#order-form');
+    if (form) {
+      form.elements.name.value = ORDER.customer.name || '';
+      form.elements.phone.value = ORDER.customer.phone || '';
+      form.elements.address.value = ORDER.customer.address || '';
+    }
+
+    // Submit habilitado solo si hay items y hay numero de WhatsApp en settings
+    const submit = $('#order-submit');
+    const info = $('#order-submit-info');
+    const hasItems = count > 0;
+    const hasWa = !!(SETTINGS.whatsapp_orders || '').trim();
+    submit.disabled = !hasItems || !hasWa;
+    if (!hasWa) {
+      info.textContent = 'El comercio todavia no configuro su numero de WhatsApp.';
+      info.classList.add('text-red-600');
+    } else if (!hasItems) {
+      info.textContent = 'Agrega productos al pedido antes de enviar.';
+      info.classList.remove('text-red-600');
+    } else {
+      info.textContent = 'Se abrira WhatsApp con el pedido listo para enviar.';
+      info.classList.remove('text-red-600');
+    }
+  }
+
+  function openOrderModal() {
+    renderOrderUI();
+    $('#order-modal').classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+  }
+
+  function closeOrderModal() {
+    $('#order-modal').classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+  }
+
+  // Construye el texto del mensaje que se envia por WhatsApp.
+  function buildOrderMessage() {
+    const lines = [];
+    lines.push('NUEVO PEDIDO');
+    lines.push('');
+    lines.push('Cliente: ' + ORDER.customer.name);
+    lines.push('Telefono: ' + ORDER.customer.phone);
+    lines.push('Direccion: ' + ORDER.customer.address);
+    lines.push('');
+    lines.push('Productos:');
+    for (const it of ORDER.items) {
+      const subtotal = it.price * it.qty;
+      lines.push(`- ${it.qty} x ${it.name} (${fmtPrice(it.price)} c/u) = ${fmtPrice(subtotal)}`);
+    }
+    lines.push('');
+    lines.push('Total estimado: ' + fmtPrice(orderTotal()));
+    return lines.join('\n');
+  }
+
+  // ===== Wiring de eventos del armador =====
+  $('#order-fab').addEventListener('click', openOrderModal);
+  $('#order-close').addEventListener('click', closeOrderModal);
+  $('#order-modal').addEventListener('click', (e) => {
+    if (e.target === $('#order-modal')) closeOrderModal();
+  });
+
+  // Botones +/- y quitar item
+  $('#order-items').addEventListener('click', (e) => {
+    const q = e.target.closest('[data-qty-id]');
+    if (q) {
+      const id = Number(q.dataset.qtyId);
+      const delta = Number(q.dataset.qtyDelta);
+      updateQty(id, delta);
+      return;
+    }
+    const r = e.target.closest('[data-remove-id]');
+    if (r) {
+      removeItem(Number(r.dataset.removeId));
+    }
+  });
+
+  // Guardar cambios del form del cliente en tiempo real (asi no se pierden)
+  $('#order-form').addEventListener('input', (e) => {
+    const t = e.target;
+    if (t.name && ORDER.customer.hasOwnProperty(t.name)) {
+      ORDER.customer[t.name] = t.value;
+      localStorage.setItem(ORDER_LS_KEY, JSON.stringify(ORDER));
+    }
+  });
+
+  // Submit: validar, abrir wa.me y limpiar items (mantenemos datos del cliente)
+  $('#order-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!ORDER.items.length) return;
+    const wa = (SETTINGS.whatsapp_orders || '').replace(/[^0-9]/g, '');
+    if (!wa) return;
+    if (!ORDER.customer.name.trim() || !ORDER.customer.phone.trim() || !ORDER.customer.address.trim()) {
+      return;
+    }
+    const text = buildOrderMessage();
+    const url = `https://wa.me/${wa}?text=${encodeURIComponent(text)}`;
+    // Abrimos en nueva pestana asi no perdemos el sitio
+    window.open(url, '_blank', 'noopener');
+    // Limpio los items del pedido (los datos del cliente quedan para la proxima)
+    clearOrder();
+    closeOrderModal();
+  });
+
+  // Listener global: cualquier boton con data-add-product agrega ese producto.
+  // Usamos delegacion porque las cards se renderizan dinamicamente.
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-add-product]');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const id = Number(btn.dataset.addProduct);
+    // Busco el producto en cualquiera de los grids ya renderizados.
+    // En el modal de detalle no tengo el objeto a mano, asi que lo pido al API.
+    // Truco simple: el productCard renderiza name + price en el HTML; los extraigo.
+    // Pero mas robusto es buscar en los datos cacheados. Por simplicidad, hacemos
+    // un fetch chico al endpoint del producto.
+    fetch(API_BASE + '/products/' + id)
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.product) addToOrder(data.product);
+      })
+      .catch(() => {});
+  });
+
   // ===== Boot =====
+  renderOrderUI(); // estado inicial del FAB y modal (con items si los hay en localStorage)
   loadSettings();
   loadCategories();
   loadDeals();

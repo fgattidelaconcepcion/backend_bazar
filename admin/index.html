@@ -170,6 +170,17 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+          <h3 class="font-bold mb-1">Pedidos por WhatsApp</h3>
+          <p class="text-xs text-gray-500 mb-4">Numero al que se envian los pedidos armados desde el sitio publico. Formato internacional sin + ni espacios. Si esta vacio, el boton "Enviar pedido" no aparece en el sitio.</p>
+          <div class="grid gap-3">
+            <label class="block"><span class="text-sm font-medium">Numero de WhatsApp para pedidos</span>
+              <input name="whatsapp_orders" inputmode="numeric" pattern="[0-9]*" class="form-input w-full rounded-lg border-gray-200 mt-1" placeholder="5491134567890"/>
+              <span class="text-xs text-gray-500">Ejemplo Argentina: 5491134567890 (54 = pais, 9 = movil, 11 = area, resto = numero).</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
           <h3 class="font-bold mb-1">Páginas del footer</h3>
           <p class="text-xs text-gray-500 mb-4">El contenido se muestra en un modal cuando el cliente clickea cada link.</p>
           <div class="grid gap-3">
@@ -547,8 +558,7 @@
   async function loadSettings() {
     try {
       const { settings } = await api('/settings');
-      const f = $('#settings-form');
-      Object.entries(settings).forEach(([k, v]) => {
+      const f = $('#settings-form');      Object.entries(settings).forEach(([k, v]) => {
         if (f.elements[k]) f.elements[k].value = v ?? '';
       });
     } catch (err) { toast(err.message, true); }
