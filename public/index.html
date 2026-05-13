@@ -45,8 +45,8 @@
   <!-- Categorías inline (desktop) -->
   <nav id="nav-categories" class="hidden md:flex items-center justify-center flex-1 gap-6 lg:gap-9 px-4"></nav>
 
-  <!-- Buscador -->
-  <div class="flex justify-end items-center gap-2 min-w-0">
+  <!-- Buscador + carrito -->
+  <div class="flex justify-end items-center gap-1 sm:gap-2 min-w-0">
     <div id="search-wrap" class="relative">
       <label class="flex flex-col h-10 w-36 sm:w-72 lg:w-96">
         <div class="flex w-full flex-1 items-stretch rounded-lg h-full">
@@ -66,6 +66,11 @@
         </div>
       </div>
     </div>
+    <!-- Boton carrito en el header (siempre visible) -->
+    <button id="header-cart" class="relative p-2 text-[#181311] dark:text-white hover:text-primary shrink-0 transition-colors" aria-label="Ver mi pedido">
+      <span class="material-symbols-outlined text-2xl">shopping_bag</span>
+      <span id="header-cart-count" class="hidden absolute -top-0.5 -right-0.5 bg-primary text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center leading-none">0</span>
+    </button>
   </div>
 </div>
 </header>
@@ -209,6 +214,15 @@
       </button>
     </div>
     <div class="flex-1 overflow-y-auto">
+      <div class="p-4 border-b border-black/10 dark:border-white/10">
+        <button id="mobile-menu-cart" class="w-full flex items-center justify-between py-2.5 px-3 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-bold transition-colors">
+          <span class="flex items-center gap-2">
+            <span class="material-symbols-outlined">shopping_bag</span>
+            Mi pedido
+          </span>
+          <span id="mobile-menu-cart-count" class="bg-primary text-white text-xs rounded-full min-w-6 h-6 px-2 flex items-center justify-center leading-none">0</span>
+        </button>
+      </div>
       <div class="p-4">
         <p class="text-xs font-bold uppercase text-gray-500 mb-2">Categorías</p>
         <ul id="mobile-categories" class="space-y-1"></ul>
@@ -288,6 +302,13 @@
     </div>
     <div id="page-body" class="p-6 text-[#333333] dark:text-white/80 leading-relaxed whitespace-pre-line"></div>
   </div>
+</div>
+
+
+<!-- TOAST: feedback al agregar productos al pedido -->
+<div id="order-toast" class="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-[200] bg-green-600 text-white px-4 py-2.5 rounded-lg shadow-2xl text-sm font-medium flex items-center gap-2 transition-all duration-300 opacity-0 pointer-events-none translate-y-4">
+  <span class="material-symbols-outlined text-base">check_circle</span>
+  <span id="order-toast-msg">Agregado al pedido</span>
 </div>
 
 <script>
@@ -732,7 +753,7 @@
     return ORDER.items.reduce((acc, it) => acc + it.price * it.qty, 0);
   }
 
-  function addToOrder(p) {
+  function addToOrder(p, opts = {}) {
     const existing = ORDER.items.find(it => it.id === p.id);
     if (existing) {
       existing.qty += 1;
@@ -741,6 +762,14 @@
     }
     saveOrder();
     bumpFab();
+    bumpHeaderCart();
+    // Feedback visual: toast + flash del boton si vino de un click
+    if (opts.silent !== true) {
+      showOrderToast('Agregaste "' + p.name + '" al pedido');
+    }
+    if (opts.button) {
+      flashButtonAdded(opts.button);
+    }
   }
 
   function updateQty(id, delta) {
@@ -773,11 +802,64 @@
     );
   }
 
+  // Pulso del icono del carrito del header al agregar items.
+  function bumpHeaderCart() {
+    const btn = $('#header-cart');
+    if (!btn) return;
+    btn.animate(
+      [{ transform: 'scale(1)' }, { transform: 'scale(1.2)' }, { transform: 'scale(1)' }],
+      { duration: 320, easing: 'ease-out' }
+    );
+  }
+
+  // Toast verde abajo, autohide en ~1.8s. Usado para confirmar "agregado al pedido".
+  let _toastTimer = null;
+  function showOrderToast(msg) {
+    const el = $('#order-toast');
+    if (!el) return;
+    $('#order-toast-msg').textContent = msg || 'Agregado al pedido';
+    el.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
+    el.classList.add('opacity-100', 'translate-y-0');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => {
+      el.classList.remove('opacity-100', 'translate-y-0');
+      el.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none');
+    }, 1800);
+  }
+
+  // Flash del boton cuando se agrega un producto. Cambia a verde con check
+  // por ~1.4s y despues vuelve al estado original.
+  function flashButtonAdded(btn) {
+    if (!btn || btn.dataset.flashing === '1') return;
+    btn.dataset.flashing = '1';
+    const originalHTML = btn.innerHTML;
+    const originalClass = btn.className;
+    // Mantenemos las clases de layout (w-full, rounded, etc) y solo cambiamos colores
+    btn.classList.remove('bg-primary', 'hover:bg-opacity-90');
+    btn.classList.add('bg-green-600', 'hover:bg-green-600');
+    btn.innerHTML = '<span class="material-symbols-outlined text-base">check_circle</span> Agregado';
+    setTimeout(() => {
+      btn.innerHTML = originalHTML;
+      btn.className = originalClass;
+      delete btn.dataset.flashing;
+    }, 1400);
+  }
+
   function renderOrderUI() {
     const count = orderCount();
     const fab = $('#order-fab');
     $('#order-fab-count').textContent = String(count);
     fab.classList.toggle('hidden', count === 0);
+
+    // Header cart (siempre visible) + badge solo si hay items
+    const hCount = $('#header-cart-count');
+    if (hCount) {
+      hCount.textContent = String(count);
+      hCount.classList.toggle('hidden', count === 0);
+    }
+    // Mobile drawer cart badge
+    const mCount = $('#mobile-menu-cart-count');
+    if (mCount) mCount.textContent = String(count);
 
     const itemsBox = $('#order-items');
     if (count === 0) {
@@ -921,18 +1003,24 @@
     if (!btn) return;
     e.preventDefault();
     e.stopPropagation();
+    if (btn.dataset.flashing === '1') return; // anti doble click mientras hace flash
     const id = Number(btn.dataset.addProduct);
-    // Busco el producto en cualquiera de los grids ya renderizados.
-    // En el modal de detalle no tengo el objeto a mano, asi que lo pido al API.
-    // Truco simple: el productCard renderiza name + price en el HTML; los extraigo.
-    // Pero mas robusto es buscar en los datos cacheados. Por simplicidad, hacemos
-    // un fetch chico al endpoint del producto.
     fetch(API_BASE + '/products/' + id)
       .then(r => r.json())
       .then(data => {
-        if (data && data.product) addToOrder(data.product);
+        if (data && data.product) {
+          // Pasamos el boton para que el flash visual ocurra ahi mismo
+          addToOrder(data.product, { button: btn });
+        }
       })
       .catch(() => {});
+  });
+
+  // Wiring del boton del header (siempre visible) y del entry del drawer mobile
+  $('#header-cart')?.addEventListener('click', openOrderModal);
+  $('#mobile-menu-cart')?.addEventListener('click', () => {
+    closeMobileMenu();
+    openOrderModal();
   });
 
   // ===== Boot =====
