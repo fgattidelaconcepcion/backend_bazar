@@ -1,19 +1,9 @@
-// Entry point del backend Bazar Moderno
+// Entry point del backend Bazar Moderno (multi-tenant + backup R2)
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
-
-const authRoutes = require("./routes/auth");
-const categoryRoutes = require("./routes/categories");
-const productRoutes = require("./routes/products");
-const cartRoutes = require("./routes/cart");
-const favoriteRoutes = require("./routes/favorites");
-const searchRoutes = require("./routes/search");
-const { router: settingsRoutes } = require("./routes/settings");
-const { router: uploadRoutes } = require("./routes/uploads");
-const storage = require("./storage");
 
 const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 3000;
@@ -27,65 +17,135 @@ app.use((req, _res, next) => {
   next();
 });
 
-// Servir uploads locales (solo cuando el adapter es local).
-// Cuando storage.kind === 'r2', las imagenes se sirven directamente desde
-// R2_PUBLIC_URL (no pasan por este server), asi que no montamos /uploads.
-if (storage.kind === "local") {
-  const uploadsDir = storage.getUploadsDir();
-  app.use(
-    "/uploads",
-    express.static(uploadsDir, {
-      maxAge: "30d",
-      immutable: true,
-      fallthrough: false,
-    }),
-  );
-  console.log("Sirviendo /uploads desde:", uploadsDir);
-}
+// Startup async para poder restaurar DB desde R2 ANTES de abrir la conexión
+(async () => {
+  // 1. Storage adapter (sin abrir DB)
+  const storage = require("./storage");
 
-// Servir el panel admin desde /admin (si existe la carpeta admin/)
-const ADMIN_DIR = path.resolve(__dirname, "..", "admin");
-if (fs.existsSync(ADMIN_DIR)) {
-  app.use("/admin", express.static(ADMIN_DIR, { index: "index.html" }));
-  console.log("Panel admin servido en /admin desde:", ADMIN_DIR);
-}
+  // 2. RESTORE: si la DB local no existe (post-deploy en Render), bajarla de R2
+  const backup = require("./db/backup");
+  await backup.restoreFromR2IfMissing();
 
-// Servir el front publico desde /public si existe
-const PUBLIC_DIR = path.resolve(__dirname, "..", "public");
-if (fs.existsSync(PUBLIC_DIR)) {
-  app.use(express.static(PUBLIC_DIR, { index: "index.html" }));
-  console.log("Front publico servido en / desde:", PUBLIC_DIR);
-}
+  // 3. AHORA podemos abrir la DB y correr migraciones
+  require("./db/migrations").run();
 
-app.get("/api/health", (_req, res) => {
-  res.json({
-    status: "ok",
-    service: "bazar-moderno-api",
-    storage: storage.kind,
-    time: new Date().toISOString(),
+  // 4. Servir archivos subidos (solo cuando storage es local)
+  if (storage.kind === "local") {
+    app.use(
+      "/uploads",
+      express.static(storage.getUploadsDir(), {
+        maxAge: "30d",
+        immutable: true,
+        fallthrough: false,
+      }),
+    );
+  }
+
+  // 5. Paneles estáticos
+  const PUBLIC_DIR = path.resolve(__dirname, "..", "public");
+  const ADMIN_DIR = path.resolve(__dirname, "..", "admin");
+  const SUPER_DIR = path.resolve(__dirname, "..", "super-admin");
+
+  if (fs.existsSync(SUPER_DIR)) {
+    app.use("/super-admin", express.static(SUPER_DIR, { index: "index.html" }));
+    console.log("Super-admin servido en /super-admin");
+  }
+  if (fs.existsSync(ADMIN_DIR)) {
+    app.get("/t/:slug/admin", (_req, res) =>
+      res.sendFile(path.join(ADMIN_DIR, "index.html")),
+    );
+    app.use("/admin", express.static(ADMIN_DIR, { index: "index.html" }));
+    console.log("Admin servido en /t/:slug/admin y /admin (legacy)");
+  }
+  if (fs.existsSync(PUBLIC_DIR)) {
+    app.get("/t/:slug", (_req, res) =>
+      res.sendFile(path.join(PUBLIC_DIR, "index.html")),
+    );
+    app.get("/", (_req, res) => {
+      if (fs.existsSync(SUPER_DIR)) return res.redirect("/super-admin");
+      res.send("<h1>Bazar Moderno</h1><p>Accedé a una tienda en /t/:slug</p>");
+    });
+  }
+
+  // 6. Health
+  app.get("/api/health", (_req, res) => {
+    res.json({
+      status: "ok",
+      service: "bazar-moderno-api",
+      storage: storage.kind,
+      multi_tenant: true,
+      time: new Date().toISOString(),
+    });
   });
-});
 
-app.use("/api/auth", authRoutes);
-app.use("/api/categories", categoryRoutes);
-app.use("/api/products", productRoutes);
-app.use("/api/cart", cartRoutes);
-app.use("/api/favorites", favoriteRoutes);
-app.use("/api/search", searchRoutes);
-app.use("/api/settings", settingsRoutes);
-app.use("/api/uploads", uploadRoutes);
+  // 7. Rutas
+  const authRoutes = require("./routes/auth");
+  const {
+    publicRouter: catPublic,
+    adminRouter: catAdmin,
+  } = require("./routes/categories");
+  const {
+    publicRouter: prodPublic,
+    adminRouter: prodAdmin,
+  } = require("./routes/products");
+  const {
+    publicRouter: settingsPublic,
+    adminRouter: settingsAdmin,
+  } = require("./routes/settings");
+  const searchRoutes = require("./routes/search");
+  const { router: uploadAdmin } = require("./routes/uploads");
+  const superAdminRoutes = require("./routes/superAdmin");
+  const {
+    tenantBySlug,
+    authMiddleware,
+    superAdminMiddleware,
+  } = require("./middleware/auth");
 
-app.use((req, res) => {
-  res
-    .status(404)
-    .json({ error: `Ruta no encontrada: ${req.method} ${req.url}` });
-});
+  app.use("/api/auth", authRoutes);
+  app.use("/api/t/:slug/categories", tenantBySlug, catPublic);
+  app.use("/api/t/:slug/products", tenantBySlug, prodPublic);
+  app.use("/api/t/:slug/search", tenantBySlug, searchRoutes);
+  app.use("/api/t/:slug/settings", tenantBySlug, settingsPublic);
+  app.use("/api/admin/categories", catAdmin);
+  app.use("/api/admin/products", prodAdmin);
+  app.use("/api/admin/settings", settingsAdmin);
+  app.use("/api/admin/uploads", uploadAdmin);
+  app.use("/api/super-admin", superAdminRoutes);
 
-app.use((err, _req, res, _next) => {
-  console.error("Error no manejado:", err);
-  res.status(500).json({ error: "Error interno del servidor" });
-});
+  // 8. Endpoint manual de backup (solo super-admin) — útil para probar
+  app.post(
+    "/api/super-admin/backup/now",
+    authMiddleware,
+    superAdminMiddleware,
+    async (_req, res) => {
+      const r = await backup.backupNow();
+      res.json(r);
+    },
+  );
 
-app.listen(PORT, () => {
-  console.log(`Bazar Moderno API escuchando en http://localhost:${PORT}`);
+  // 9. 404 y error handler
+  app.use((req, res) =>
+    res
+      .status(404)
+      .json({ error: `Ruta no encontrada: ${req.method} ${req.url}` }),
+  );
+  app.use((err, _req, res, _next) => {
+    console.error("Error no manejado:", err);
+    res.status(500).json({ error: "Error interno del servidor" });
+  });
+
+  // 10. Start server + backup loop
+  app.listen(PORT, () => {
+    console.log(
+      `🛒 Bazar Moderno API (multi-tenant) en http://localhost:${PORT}`,
+    );
+    console.log(`   Storefront público:  /t/:slug`);
+    console.log(`   Panel admin tenant:  /t/:slug/admin`);
+    console.log(`   Panel super-admin:   /super-admin`);
+    // Arrancar backup loop (cada 5 min)
+    backup.startBackupLoop(5 * 60 * 1000);
+  });
+})().catch((e) => {
+  console.error("Fatal en startup:", e);
+  process.exit(1);
 });
