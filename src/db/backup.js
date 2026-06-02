@@ -1,10 +1,14 @@
 // Backup automático del SQLite a R2.
-// - backupNow(): copia consistente (VACUUM INTO) → encripta AES-256-GCM → sube a R2
-// - restoreFromR2IfMissing(): si la DB local no existe (post-deploy), la baja y restaura
+// - backupNow(): copia consistente (VACUUM INTO) -> encripta AES-256-GCM -> sube a R2
+// - restoreFromR2(): si hay backup en R2, lo descarga, desencripta y reemplaza la DB local
 // - startBackupLoop(ms): timer cada N ms
 //
-// Encripta con BACKUP_KEY si está definida, sino con JWT_SECRET como fallback.
-// Solo activo cuando el storage backend es R2 (en local no tiene sentido).
+// La política de restore es: SIEMPRE restaurar si hay backup en R2, no importa
+// si la DB local existe. Esto es porque el build de Render puede haber corrido
+// `npm run seed` y dejado una DB con datos de ejemplo — queremos reemplazarla
+// con los datos reales del último backup.
+//
+// Solo activo cuando storage backend es R2.
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
@@ -43,20 +47,16 @@ function decrypt(buf) {
 
 async function backupNow() {
   if (storage.kind !== "r2") {
-    // En storage local no tiene sentido hacer "backup a sí mismo"
     return { skipped: true, reason: "storage no es r2" };
   }
   try {
-    // Limpiar snapshot previo
     try {
       fs.unlinkSync(TEMP_BACKUP);
     } catch {}
-
-    // VACUUM INTO crea una copia consistente sin bloquear writes
+    // VACUUM INTO: copia consistente del DB sin bloquear writes
     const db = require("./database");
     db.exec(`VACUUM INTO '${TEMP_BACKUP.replace(/'/g, "''")}'`);
 
-    // Leer, encriptar y subir
     const raw = await fs.promises.readFile(TEMP_BACKUP);
     const enc = encrypt(raw);
     await storage.saveBuffer(
@@ -66,7 +66,6 @@ async function backupNow() {
       "application/octet-stream",
     );
 
-    // Limpiar tmp
     try {
       fs.unlinkSync(TEMP_BACKUP);
     } catch {}
@@ -82,32 +81,22 @@ async function backupNow() {
   }
 }
 
-async function restoreFromR2IfMissing() {
+// Siempre intenta restaurar desde R2 si hay backup.
+// - Si R2 tiene backup: descarga, desencripta y reemplaza la DB local
+// - Si no hay backup: deja la DB local como está (puede estar vacía o seedeada)
+async function restoreFromR2() {
   if (storage.kind !== "r2") {
     console.log("[backup] Storage no es R2, skip restore.");
     return false;
   }
 
-  // Si la DB local existe y tiene tamaño > 0, no restauramos (preservar data local)
-  try {
-    const st = fs.statSync(DB_PATH);
-    if (st.size > 0) {
-      console.log(
-        `[backup] DB local presente (${(st.size / 1024).toFixed(1)} KB), no restaura.`,
-      );
-      return false;
-    }
-  } catch {
-    /* no existe, hay que restaurar */
-  }
-
-  console.log(
-    "[backup] DB local no encontrada, intentando restaurar desde R2...",
-  );
+  console.log("[backup] Buscando backup en R2...");
   try {
     const enc = await storage.getBuffer(BACKUP_KIND, BACKUP_FILENAME);
     if (!enc || enc.length === 0) {
-      console.log("[backup] No hay backup previo en R2, arrancamos fresh.");
+      console.log(
+        "[backup] No hay backup previo en R2, se mantiene la DB local (si existe).",
+      );
       return false;
     }
     const raw = decrypt(enc);
@@ -142,4 +131,12 @@ function startBackupLoop(intervalMs = 5 * 60 * 1000) {
   console.log(`[backup] Loop activado cada ${Math.round(intervalMs / 1000)}s`);
 }
 
-module.exports = { backupNow, restoreFromR2IfMissing, startBackupLoop };
+// Mantengo el nombre viejo como alias por compatibilidad
+const restoreFromR2IfMissing = restoreFromR2;
+
+module.exports = {
+  backupNow,
+  restoreFromR2,
+  restoreFromR2IfMissing,
+  startBackupLoop,
+};

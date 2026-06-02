@@ -1,4 +1,4 @@
-// Entry point del backend Bazar Moderno (multi-tenant + backup R2)
+// Entry point del backend Bazar Moderno (single-tenant + backup R2)
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -17,19 +17,27 @@ app.use((req, _res, next) => {
   next();
 });
 
-// Startup async para poder restaurar DB desde R2 ANTES de abrir la conexión
+// Startup async: restore desde R2 ANTES de abrir la DB (que abre cualquier route)
 (async () => {
-  // 1. Storage adapter (sin abrir DB)
+  // 1. Storage adapter (no abre DB)
   const storage = require("./storage");
 
-  // 2. RESTORE: si la DB local no existe (post-deploy en Render), bajarla de R2
+  // 2. RESTORE: si hay backup en R2, recuperar (overwrite a la DB seedeada por el build)
   const backup = require("./db/backup");
-  await backup.restoreFromR2IfMissing();
+  await backup.restoreFromR2();
 
-  // 3. AHORA podemos abrir la DB y correr migraciones
-  require("./db/migrations").run();
+  // 3. AHORA podemos cargar las rutas (que abren la DB ya restaurada)
+  const authRoutes = require("./routes/auth");
+  const categoryRoutes = require("./routes/categories");
+  const productRoutes = require("./routes/products");
+  const cartRoutes = require("./routes/cart");
+  const favoriteRoutes = require("./routes/favorites");
+  const searchRoutes = require("./routes/search");
+  const { router: settingsRoutes } = require("./routes/settings");
+  const { router: uploadRoutes } = require("./routes/uploads");
+  const { authMiddleware, adminMiddleware } = require("./middleware/auth");
 
-  // 4. Servir archivos subidos (solo cuando storage es local)
+  // 4. Servir archivos subidos locales (si no se usa R2)
   if (storage.kind === "local") {
     app.use(
       "/uploads",
@@ -42,29 +50,15 @@ app.use((req, _res, next) => {
   }
 
   // 5. Paneles estáticos
-  const PUBLIC_DIR = path.resolve(__dirname, "..", "public");
   const ADMIN_DIR = path.resolve(__dirname, "..", "admin");
-  const SUPER_DIR = path.resolve(__dirname, "..", "super-admin");
-
-  if (fs.existsSync(SUPER_DIR)) {
-    app.use("/super-admin", express.static(SUPER_DIR, { index: "index.html" }));
-    console.log("Super-admin servido en /super-admin");
-  }
   if (fs.existsSync(ADMIN_DIR)) {
-    app.get("/t/:slug/admin", (_req, res) =>
-      res.sendFile(path.join(ADMIN_DIR, "index.html")),
-    );
     app.use("/admin", express.static(ADMIN_DIR, { index: "index.html" }));
-    console.log("Admin servido en /t/:slug/admin y /admin (legacy)");
+    console.log("Panel admin servido en /admin desde:", ADMIN_DIR);
   }
+  const PUBLIC_DIR = path.resolve(__dirname, "..", "public");
   if (fs.existsSync(PUBLIC_DIR)) {
-    app.get("/t/:slug", (_req, res) =>
-      res.sendFile(path.join(PUBLIC_DIR, "index.html")),
-    );
-    app.get("/", (_req, res) => {
-      if (fs.existsSync(SUPER_DIR)) return res.redirect("/super-admin");
-      res.send("<h1>Bazar Moderno</h1><p>Accedé a una tienda en /t/:slug</p>");
-    });
+    app.use(express.static(PUBLIC_DIR, { index: "index.html" }));
+    console.log("Front público servido en / desde:", PUBLIC_DIR);
   }
 
   // 6. Health
@@ -73,57 +67,32 @@ app.use((req, _res, next) => {
       status: "ok",
       service: "bazar-moderno-api",
       storage: storage.kind,
-      multi_tenant: true,
       time: new Date().toISOString(),
     });
   });
 
-  // 7. Rutas
-  const authRoutes = require("./routes/auth");
-  const {
-    publicRouter: catPublic,
-    adminRouter: catAdmin,
-  } = require("./routes/categories");
-  const {
-    publicRouter: prodPublic,
-    adminRouter: prodAdmin,
-  } = require("./routes/products");
-  const {
-    publicRouter: settingsPublic,
-    adminRouter: settingsAdmin,
-  } = require("./routes/settings");
-  const searchRoutes = require("./routes/search");
-  const { router: uploadAdmin } = require("./routes/uploads");
-  const superAdminRoutes = require("./routes/superAdmin");
-  const {
-    tenantBySlug,
-    authMiddleware,
-    superAdminMiddleware,
-  } = require("./middleware/auth");
-
+  // 7. Rutas API (single-tenant)
   app.use("/api/auth", authRoutes);
-  app.use("/api/t/:slug/categories", tenantBySlug, catPublic);
-  app.use("/api/t/:slug/products", tenantBySlug, prodPublic);
-  app.use("/api/t/:slug/search", tenantBySlug, searchRoutes);
-  app.use("/api/t/:slug/settings", tenantBySlug, settingsPublic);
-  app.use("/api/admin/categories", catAdmin);
-  app.use("/api/admin/products", prodAdmin);
-  app.use("/api/admin/settings", settingsAdmin);
-  app.use("/api/admin/uploads", uploadAdmin);
-  app.use("/api/super-admin", superAdminRoutes);
+  app.use("/api/categories", categoryRoutes);
+  app.use("/api/products", productRoutes);
+  app.use("/api/cart", cartRoutes);
+  app.use("/api/favorites", favoriteRoutes);
+  app.use("/api/search", searchRoutes);
+  app.use("/api/settings", settingsRoutes);
+  app.use("/api/uploads", uploadRoutes);
 
-  // 8. Endpoint manual de backup (solo super-admin) — útil para probar
+  // 8. Endpoint manual de backup (admin) — útil para forzar backup desde el panel
   app.post(
-    "/api/super-admin/backup/now",
+    "/api/admin/backup/now",
     authMiddleware,
-    superAdminMiddleware,
+    adminMiddleware,
     async (_req, res) => {
       const r = await backup.backupNow();
       res.json(r);
     },
   );
 
-  // 9. 404 y error handler
+  // 9. 404 + error handler
   app.use((req, res) =>
     res
       .status(404)
@@ -134,15 +103,9 @@ app.use((req, _res, next) => {
     res.status(500).json({ error: "Error interno del servidor" });
   });
 
-  // 10. Start server + backup loop
+  // 10. Start server + activar backup loop
   app.listen(PORT, () => {
-    console.log(
-      `🛒 Bazar Moderno API (multi-tenant) en http://localhost:${PORT}`,
-    );
-    console.log(`   Storefront público:  /t/:slug`);
-    console.log(`   Panel admin tenant:  /t/:slug/admin`);
-    console.log(`   Panel super-admin:   /super-admin`);
-    // Arrancar backup loop (cada 5 min)
+    console.log(`🛒 Bazar Moderno API escuchando en http://localhost:${PORT}`);
     backup.startBackupLoop(5 * 60 * 1000);
   });
 })().catch((e) => {
