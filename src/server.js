@@ -17,7 +17,7 @@ app.use((req, _res, next) => {
   next();
 });
 
-// Startup async: restore desde R2 ANTES de abrir la DB (que abre cualquier route)
+// Startup async: restore desde R2 ANTES de abrir the DB (que abre cualquier route)
 (async () => {
   // 1. Storage adapter (no abre DB)
   const storage = require("./storage");
@@ -26,8 +26,7 @@ app.use((req, _res, next) => {
   const backup = require("./db/backup");
   await backup.restoreFromR2();
 
-  // 2.5. AUTO-REPARACIÓN: Verificar / Crear esquema tras el restore
-  // Si el restore trajo un archivo sin tablas o corrupto, init.js se encarga de repararlo.
+  // 2.5. AUTO-REPARACIÓN Y AUTO-SEED: Verificar esquema y asegurar datos iniciales tras el restore
   try {
     console.log(
       "[backup] Verificando integridad del esquema de la base de datos post-restore...",
@@ -39,9 +38,23 @@ app.use((req, _res, next) => {
       await initDb();
     }
     console.log("[backup] Verificación de tablas completada con éxito.");
+
+    // Asegurar que el usuario administrador existe en la base de datos restaurada
+    console.log(
+      "[backup] Asegurando existencia de datos iniciales (Admin y catálogo)...",
+    );
+    const seedDb = require("./db/seed");
+
+    // Si tu seed.js exporta una función, la ejecutamos; si no, el require la habrá corrido.
+    if (typeof seedDb === "function") {
+      await seedDb();
+    }
+    console.log(
+      "[backup] Proceso de verificación/carga de datos iniciales finalizado.",
+    );
   } catch (dbErr) {
     console.error(
-      "[backup] Error crítico al verificar/inicializar el esquema post-restore:",
+      "[backup] Error crítico al verificar/inicializar el esquema y datos post-restore:",
       dbErr,
     );
   }
