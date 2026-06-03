@@ -26,7 +26,27 @@ app.use((req, _res, next) => {
   const backup = require("./db/backup");
   await backup.restoreFromR2();
 
-  // 3. AHORA podemos cargar las rutas (que abren la DB ya restaurada)
+  // 2.5. AUTO-REPARACIÓN: Verificar / Crear esquema tras el restore
+  // Si el restore trajo un archivo sin tablas o corrupto, init.js se encarga de repararlo.
+  try {
+    console.log(
+      "[backup] Verificando integridad del esquema de la base de datos post-restore...",
+    );
+    const initDb = require("./db/init");
+
+    // Si tu init.js exporta una función ejecutable, la corremos.
+    if (typeof initDb === "function") {
+      await initDb();
+    }
+    console.log("[backup] Verificación de tablas completada con éxito.");
+  } catch (dbErr) {
+    console.error(
+      "[backup] Error crítico al verificar/inicializar el esquema post-restore:",
+      dbErr,
+    );
+  }
+
+  // 3. AHORA podemos cargar las rutas (que abren la DB ya restaurada y verificada)
   const authRoutes = require("./routes/auth");
   const categoryRoutes = require("./routes/categories");
   const productRoutes = require("./routes/products");
